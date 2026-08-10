@@ -24,22 +24,29 @@
 ## 🇮🇩 Bahasa Indonesia
 
 ### 📖 Tentang HandFlux Pro
-**HandFlux Pro** adalah aplikasi *Computer Vision* interaktif yang mengubah gerakan tangan Anda menjadi portal efek visual real-time. Cukup bentangkan dua tangan di depan webcam untuk memproyeksikan portal efek futuristik dari **32 filter visual premium** yang dikategorikan ke dalam 4 tema utama (*Cinematic, Anime, Cyberpunk, Artistic*).
+**HandFlux Pro** adalah aplikasi *Computer Vision* interaktif yang mengubah gerakan tangan Anda menjadi portal efek visual real-time dan jurus Ninjutsu interaktif. Cukup bentangkan dua tangan di depan webcam untuk memproyeksikan portal efek futuristik dari **40 filter visual premium** yang dikategorikan ke dalam 5 tema utama (*Cinematic, Anime, Cyberpunk, Artistic, Exotic*) serta **Naruto Ninjutsu Engine** (*Rasengan, Fire Style, Chidori, Shadow Clone, Blast Explosion*).
 
-Aplikasi ini dilengkapi dengan mode **Auto-Cycle 2 Detik** (otomatis berganti filter tanpa perlu gesture cubit), pemilihan tema filter dinamis, deteksi jari berdiri yang presisi, serta pengurutan poligon anti-kelipet.
+Aplikasi ini dilengkapi dengan mode **Auto-Cycle 2 Detik** (otomatis berganti filter tanpa perlu gesture cubit), **Naruto Jutsu Activation via Tepuk Tangan (CLAP) / Hand Sign / Tombol**, pemilihan tema filter dinamis, deteksi jari berdiri yang presisi, serta pengurutan poligon anti-kelipet.
 
 ---
 
-### 🎨 32 Filter Visual Berdasarkan Tema
+### 🎨 40 Filter Visual & Naruto Ninjutsu Engine
 
-1. **🎬 Tema CINEMATIC & FILM (8 Filter)**:
+1. **🌀 NARUTO NINJUTSU ENGINE**:
+   - 🌀 **Rasengan & Blast**: Tepuk tangan (CLAP 👏) atau tekan `J`/`1` untuk mengeluarkan bola Rasengan 3D spiral chakra + ledakan Blast!
+   - 🔥 **Katon / Fire Style**: Tekan `K`/`2` untuk menyemburkan api Katon Fireball dari telapak tangan!
+   - ⚡ **Chidori**: Tekan `L`/`3` untuk mengalirkan petir kilat Chidori 1000 Burung!
+   - 👥 **Kage Bunshin / Shadow Clone**: Tekan `B`/`4` untuk membelah layar menjadi bayangan Shadow Clone!
+2. **🎬 Tema CINEMATIC & FILM (8 Filter)**:
    `Teal-Orange`, `Kodachrome`, `Technicolor`, `Noir-Film`, `Cinematic-Warm`, `Vignette-Cinema`, `Sepia-Vintage`, `Detail-Enhance (HDR)`.
-2. **⛩️ Tema ANIME & CARTOON (8 Filter)**:
+3. **⛩️ Tema ANIME & CARTOON (8 Filter)**:
    `Anime-Cel`, `Manga-Ink`, `Cartoon-Classic`, `Pop-Art`, `Pencil-Sketch`, `Pencil-Color`, `Stylized-Water`, `Posterize`.
-3. **⚡ Tema CYBER & SCI-FI (8 Filter)**:
+4. **⚡ Tema CYBER & SCI-FI (8 Filter)**:
    `Cyberpunk`, `Matrix`, `Thermal`, `Night-Vision`, `Hologram`, `Glitch-RGB`, `Anaglyph-3D`, `Emboss-3D`.
-4. **🎨 Tema ARTISTIC & EFX (8 Filter)**:
+5. **🎨 Tema ARTISTIC & EFX (8 Filter)**:
    `Oil-Paint`, `Rainbow-Wave`, `Edge-Neon`, `Pixelate`, `VHS-Tape`, `Solarize`, `Duotone-Cyan`, `Cross-Process`.
+6. **🌀 Tema EXOTIC (8 Filter)**:
+   `Pixel-Sort`, `Kaleidoscope`, `Water-Ripple`, `Frosted-Glass`, `CRT-Screen`, `Aurora-Gradient`, `Diamond-Mosaic`, `Dream-Glow`.
 
 ---
 
@@ -47,12 +54,13 @@ Aplikasi ini dilengkapi dengan mode **Auto-Cycle 2 Detik** (otomatis berganti fi
 
 | Fitur & Keunggulan | Kenapa Ini Lebih Keren? 🚀 |
 | --- | --- |
-| **🔄 Auto-Cycle Mode 2 Detik (`A`)** | Filter otomatis berganti setiap 2 detik secara otomatis tanpa perlu melakukan gestur cubit! |
-| **🏷️ Theme Category Switcher (`T`)** | Pilih kategori tema khusus (Cinematic, Anime, Cyber, Artistic) atau jalankan seluruh filter secara acak. |
+| **🌀 Naruto Ninjutsu Engine** | Tepuk tangan (**CLAP 👏**) untuk merilis **Rasengan 🌀** dengan pita chakra spiral 3D & ledakan Blast, **Fire Style 🔥**, **Chidori ⚡**, dan **Shadow Clone 👥**! |
+| **🔄 Auto-Cycle Mode 2 Detik (`A`)** | Filter otomatis berganti setiap 2 detik secara acak tanpa perlu melakukan gestur cubit! |
+| **🏷️ Theme Category Switcher (`T`)** | Pilih kategori tema khusus (Cinematic, Anime, Cyber, Artistic, Exotic) atau jalankan seluruh filter secara acak. |
 | **🖐️ Smart Standing Finger Filter** | Hanya mendeteksi dan menggunakan jari yang **berdiri tegak**. Jari yang dilipat ke telapak tangan otomatis diabaikan! |
 | **📐 CCW Polar Angle Sorting** | Poligon portal diurutkan berlawanan arah jarum jam secara matematis. **Portal 100% TIDAK AKAN KELIPET ATAU MENYILANG**! |
-| **🎨 32 Filter Visual Premium** | Koleksi 32 filter spektakuler dari gaya film sinematik, anime cel shading, cyberpunk neon, lukisan air, hingga efek 3D stereo. |
-| **✨ EMA Landmark Smoothing** | Diterapkan *Exponential Moving Average (alpha=0.5)* untuk menyaring getaran piksel (*jitter*). |
+| **🎨 40 Filter Visual Premium** | Koleksi 40 filter spektakuler dari gaya film sinematik, anime cel shading, cyberpunk neon, pixel sort glitch art, hingga efek 3D stereo. |
+| **✨ Velocity-Predicting Tracker** | Pelacak gerakan tangan berbasis *Velocity Prediction & Ghost Frames (12 frames)* untuk pergerakan portal mulus tanpa flicker. |
 | **🖥️ Glassmorphic HUD & Toasts** | Tampilan antarmuka transparan futuristik dilengkapi sistem notifikasi mengambang (*floating toast system*). |
 | **🖱️ One-Click Desktop Launcher** | Dilengkapi file batch & shortcut instan di Desktop Windows. |
 | **⚡ High Frame-Rate Throughput** | Didukung optimasi buffer kamera real-time yang mampu membuka performa hingga 120 FPS. |

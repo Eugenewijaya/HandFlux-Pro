@@ -777,6 +777,447 @@ class FilterBank:
         return cv2.addWeighted(roi, 0.7, glow, 0.5, 10)
 
 
+# ==============================================================================
+#  NARUTO NINJUTSU ENGINE (Rasengan 🌀, Fire Style 🔥, Chidori ⚡, Shadow Clone 👥)
+# ==============================================================================
+
+class NinjutsuParticle:
+    def __init__(self, x: float, y: float, vx: float, vy: float, color: Tuple[int, int, int], life: int, size: int = 3):
+        self.x, self.y = float(x), float(y)
+        self.vx, self.vy = vx, vy
+        self.color = color
+        self.life = life
+        self.max_life = life
+        self.size = size
+
+    def update(self) -> None:
+        self.x += self.vx
+        self.y += self.vy
+        self.vy += 0.10
+        self.life -= 1
+
+    def draw(self, frame: np.ndarray) -> None:
+        if self.life <= 0:
+            return
+        a = self.life / float(self.max_life)
+        sz = max(1, int(self.size * a))
+        col = tuple(int(c * a) for c in self.color)
+        cv2.circle(frame, (int(self.x), int(self.y)), sz, col, -1)
+
+
+class NinjutsuBlast:
+    def __init__(self) -> None:
+        self.active = False
+        self.cx = 0
+        self.cy = 0
+        self.start_t = 0.0
+        self.duration = 1.6
+        self.particles: List[NinjutsuParticle] = []
+        self.ring_r = 0
+
+    def activate(self, cx: int, cy: int) -> None:
+        self.active = True
+        self.cx, self.cy = cx, cy
+        self.start_t = time.time()
+        self.ring_r = 0
+        self.particles = []
+        for _ in range(160):
+            ang = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(5, 22)
+            vx = speed * math.cos(ang)
+            vy = speed * math.sin(ang)
+            color = random.choice([
+                (255, 255, 255), (220, 235, 255),
+                (180, 210, 255), (100, 170, 255),
+                (60, 140, 255),
+            ])
+            self.particles.append(
+                NinjutsuParticle(cx, cy, vx, vy, color, random.randint(22, 55), random.randint(3, 10))
+            )
+
+    def update_and_draw(self, frame: np.ndarray) -> None:
+        if not self.active:
+            return
+        elapsed = time.time() - self.start_t
+        if elapsed > self.duration:
+            self.active = False
+            self.particles = []
+            return
+
+        alpha = max(0.0, 1.0 - elapsed / self.duration)
+        cx, cy = self.cx, self.cy
+
+        if elapsed < 0.14:
+            flash_a = 1.0 - elapsed / 0.14
+            ov = frame.copy()
+            cv2.circle(ov, (cx, cy), int(320 * (elapsed / 0.14)), (255, 255, 255), -1)
+            cv2.addWeighted(ov, flash_a * 0.65, frame, 1 - flash_a * 0.65, 0, frame)
+
+        self.ring_r = int(elapsed / self.duration * 380)
+        for offset in [0, 14, 32]:
+            r = self.ring_r - offset
+            if r > 0:
+                ring_a = max(0.0, alpha - offset / 110.0)
+                ov = frame.copy()
+                cv2.circle(ov, (cx, cy), r, (int(80 * ring_a), int(160 * ring_a), int(255 * ring_a)), max(1, int(5 * ring_a)))
+                cv2.addWeighted(ov, 0.75, frame, 0.25, 0, frame)
+
+        self.particles = [p for p in self.particles if p.life > 0]
+        for p in self.particles:
+            p.update()
+            p.draw(frame)
+
+        if elapsed < 0.65:
+            scale = 1.0 + elapsed * 3
+            tx = int(cx - 80 * scale * 0.5)
+            ty = int(cy - 30)
+            cv2.putText(frame, "BLAST!", (tx + 3, ty + 3), cv2.FONT_HERSHEY_SIMPLEX, scale, (0, int(80 * alpha), int(160 * alpha)), 6, cv2.LINE_AA)
+            cv2.putText(frame, "BLAST!", (tx, ty), cv2.FONT_HERSHEY_SIMPLEX, scale, (200, 230, 255), 2, cv2.LINE_AA)
+
+
+class RasenganEffect:
+    def __init__(self, blast_ref: NinjutsuBlast) -> None:
+        self.blast = blast_ref
+        self.active = False
+        self.angle = 0.0
+        self.start_time = 0.0
+        self.duration = 5.0
+        self.cx, self.cy = 0, 0
+        self.particles: List[NinjutsuParticle] = []
+        self.wind_lines: List[dict] = []
+        self.shockwave_r = 0
+        self.shockwave_on = False
+        self.orb_radius = 0
+        self.gyro_rings = [
+            (0, 1.0), (math.pi / 3, 1.4), (math.pi * 2 / 3, 0.8),
+            (math.pi, 1.2), (math.pi * 4 / 3, 1.6),
+        ]
+
+    def activate(self, cx: int, cy: int) -> None:
+        self.active = True
+        self.cx, self.cy = cx, cy
+        self.start_time = time.time()
+        self.particles = []
+        self.wind_lines = []
+        self.orb_radius = 0
+        self.shockwave_r = 0
+        self.shockwave_on = True
+        self.angle = 0.0
+
+    def _glow(self, frame: np.ndarray, cx: int, cy: int, R: int, color: Tuple[int, int, int], layers: int = 14, base_alpha: float = 0.06) -> None:
+        for i in range(layers, 0, -1):
+            rad = int(R * (1.0 + i * 0.28))
+            fade = i / float(layers)
+            col = tuple(int(c * fade) for c in color)
+            ov = frame.copy()
+            cv2.circle(ov, (cx, cy), rad, col, -1)
+            cv2.addWeighted(ov, base_alpha * fade, frame, 1 - base_alpha * fade, 0, frame)
+
+    def _draw_gyro_ring(self, frame: np.ndarray, cx: int, cy: int, R: int, phase: float, speed_mul: float, angle_deg: float, alpha: float) -> None:
+        arad = math.radians(angle_deg * speed_mul + math.degrees(phase))
+        b_ratio = abs(math.sin(arad))
+        tilt_rot = math.degrees(arad * 0.5)
+        b_axis = max(2, int(R * b_ratio))
+        ring_col = (int(120 * alpha), int(190 * alpha), int(255 * alpha))
+        cv2.ellipse(frame, (cx, cy), (R, b_axis), int(tilt_rot) % 180, 0, 360, ring_col, 1, cv2.LINE_AA)
+
+    def _spawn_wind_line(self, cx: int, cy: int, R: int) -> dict:
+        ang = random.uniform(0, 2 * math.pi)
+        dist = random.uniform(R * 2.2, R * 5.0)
+        sx = cx + dist * math.cos(ang)
+        sy = cy + dist * math.sin(ang)
+        end_ang = ang + random.uniform(0.25, 0.6) * random.choice([-1, 1])
+        ex = cx + R * 1.05 * math.cos(end_ang)
+        ey = cy + R * 1.05 * math.sin(end_ang)
+        length_frames = random.randint(6, 14)
+        color = random.choice([(160, 200, 255), (200, 220, 255), (100, 160, 255), (255, 255, 255)])
+        return {'sx': sx, 'sy': sy, 'ex': ex, 'ey': ey, 'life': length_frames, 'max_life': length_frames, 'color': color}
+
+    def _draw_helical_band(self, frame: np.ndarray, cx: int, cy: int, R: int, arm_index: int, num_arms: int, angle_deg: float, alpha: float, tilt_amp: float = 0.55) -> None:
+        pts = []
+        base_offset = (360.0 / num_arms) * arm_index
+        for t in range(80):
+            frac = t / 79.0
+            phi = math.radians(angle_deg * 2.2 + base_offset + frac * 340)
+            theta = math.radians(frac * 360 * 1.8 + arm_index * 137)
+            x3d = R * math.cos(phi) * math.sin(theta)
+            y3d = R * tilt_amp * math.sin(phi) * math.sin(theta)
+            pts.append((int(cx + x3d), int(cy + y3d)))
+
+        for i in range(len(pts) - 1):
+            frac = i / float(len(pts))
+            brightness = max(0.0, 1.0 - frac * 0.7)
+            line_w = max(1, int(2.5 * brightness * alpha))
+            col = (int((80 + 175 * brightness) * alpha), int((150 + 105 * brightness) * alpha), int(255 * alpha))
+            cv2.line(frame, pts[i], pts[i + 1], col, line_w, cv2.LINE_AA)
+
+    def update_and_draw(self, frame: np.ndarray, cx: int, cy: int) -> None:
+        if not self.active:
+            return
+        elapsed = time.time() - self.start_time
+        if elapsed > self.duration:
+            self.active = False
+            self.particles = []
+            self.blast.activate(cx, cy)
+            return
+
+        self.cx, self.cy = cx, cy
+        alpha = max(0.0, 1.0 - elapsed / self.duration)
+        max_r = 64
+        self.orb_radius = int(max_r * min(1.0, elapsed / 0.4))
+        R = self.orb_radius
+        if R < 4:
+            return
+
+        spin_speed = 9.0 + 6.0 * min(1.0, elapsed / 0.35)
+        self.angle += spin_speed
+        h, w = frame.shape[:2]
+
+        ov = frame.copy()
+        cv2.rectangle(ov, (0, 0), (w, h), (60, 20, 0), -1)
+        cv2.addWeighted(ov, 0.07 * alpha, frame, 1 - 0.07 * alpha, 0, frame)
+
+        if self.shockwave_on:
+            self.shockwave_r += 22
+            ra = max(0.0, 1.0 - self.shockwave_r / 260.0)
+            if ra > 0:
+                ov = frame.copy()
+                cv2.circle(ov, (cx, cy), self.shockwave_r, (int(160 * ra), int(210 * ra), int(255 * ra)), 3)
+                cv2.addWeighted(ov, 0.9, frame, 0.1, 0, frame)
+            else:
+                self.shockwave_on = False
+
+        self._glow(frame, cx, cy, R, (int(60 * alpha), int(130 * alpha), int(255 * alpha)), layers=14, base_alpha=0.06)
+
+        if elapsed < self.duration - 0.4 and random.random() < 0.55:
+            self.wind_lines.append(self._spawn_wind_line(cx, cy, R))
+
+        new_wl = []
+        for wl in self.wind_lines:
+            wl['life'] -= 1
+            if wl['life'] > 0:
+                fade = (wl['life'] / float(wl['max_life'])) * alpha * 0.7
+                col = tuple(int(c * fade) for c in wl['color'])
+                cv2.line(frame, (int(wl['sx']), int(wl['sy'])), (int(wl['ex']), int(wl['ey'])), col, 1, cv2.LINE_AA)
+                new_wl.append(wl)
+        self.wind_lines = new_wl
+
+        pulse = 1.0 + 0.06 * math.sin(elapsed * 16)
+        Rp = int(R * pulse)
+
+        ov = frame.copy()
+        for layer in range(10, 0, -1):
+            r_l = int(Rp * (0.95 + layer * 0.04))
+            fade = layer / 10.0
+            col = (int(30 * fade), int(80 * fade), int(200 * fade))
+            cv2.circle(ov, (cx, cy), r_l, col, -1)
+        cv2.circle(ov, (cx, cy), Rp, (50, 130, 240), -1)
+        cv2.circle(ov, (cx, cy), int(Rp * 0.78), (90, 170, 255), -1)
+        cv2.circle(ov, (cx, cy), int(Rp * 0.56), (160, 210, 255), -1)
+        cv2.circle(ov, (cx, cy), int(Rp * 0.38), (220, 238, 255), -1)
+        cv2.circle(ov, (cx, cy), int(Rp * 0.22), (255, 255, 255), -1)
+        cv2.addWeighted(ov, 0.72 * alpha, frame, 1 - 0.72 * alpha, 0, frame)
+
+        num_arms = 4
+        for arm in range(num_arms):
+            self._draw_helical_band(frame, cx, cy, Rp, arm, num_arms, self.angle, alpha)
+
+        for phase, speed_mul in self.gyro_rings:
+            self._draw_gyro_ring(frame, cx, cy, Rp + 5, phase, speed_mul, self.angle, alpha * 0.75)
+
+        primary_b = int((Rp + 4) * abs(math.sin(math.radians(self.angle * 1.1))))
+        primary_b = max(2, primary_b)
+        cv2.ellipse(frame, (cx, cy), (Rp + 4, primary_b), int(self.angle * 0.6) % 180, 0, 360, (int(180 * alpha), int(220 * alpha), int(255 * alpha)), 2, cv2.LINE_AA)
+
+        for _ in range(6):
+            ang = random.uniform(0, 2 * math.pi)
+            tangent_ang = ang + math.pi / 2.0 * random.choice([-1, 1])
+            speed = random.uniform(2.5, 6.0)
+            sx = cx + int(Rp * math.cos(ang))
+            sy = cy + int(Rp * math.sin(ang))
+            vx = speed * math.cos(tangent_ang) + random.uniform(-0.8, 0.8)
+            vy = speed * math.sin(tangent_ang) + random.uniform(-0.8, 0.8)
+            color = random.choice([(255, 255, 255), (220, 235, 255), (160, 200, 255), (100, 160, 255)])
+            self.particles.append(NinjutsuParticle(sx, sy, vx, vy, color, random.randint(8, 22), random.randint(1, 3)))
+
+        self.particles = [p for p in self.particles if p.life > 0]
+        for p in self.particles:
+            p.update()
+            p.draw(frame)
+
+        for _ in range(5):
+            a1 = random.uniform(0, 2 * math.pi)
+            a2 = a1 + random.uniform(-0.7, 0.7)
+            ex1, ey1 = int(cx + Rp * math.cos(a1)), int(cy + Rp * math.sin(a1))
+            ex2, ey2 = int(cx + Rp * math.cos(a2)), int(cy + Rp * math.sin(a2))
+            mx = (ex1 + ex2) // 2 + random.randint(-14, 14)
+            my = (ey1 + ey2) // 2 + random.randint(-14, 14)
+            col = (int(140 * alpha), int(200 * alpha), int(255 * alpha))
+            cv2.line(frame, (ex1, ey1), (mx, my), col, 1, cv2.LINE_AA)
+            cv2.line(frame, (mx, my), (ex2, ey2), col, 1, cv2.LINE_AA)
+
+        time_left = max(0.0, 1.0 - elapsed / self.duration)
+        arc_end = int(360 * time_left)
+        cv2.ellipse(frame, (cx, cy), (Rp + 14, Rp + 14), -90, 0, arc_end, (int(100 * alpha), int(180 * alpha), int(255 * alpha)), 2, cv2.LINE_AA)
+
+        tx, ty = cx - 72, cy - Rp - 24
+        cv2.putText(frame, "RASENGAN!", (tx + 2, ty + 2), cv2.FONT_HERSHEY_SIMPLEX, 1.05, (0, 60, 140), 6, cv2.LINE_AA)
+        cv2.putText(frame, "RASENGAN!", (tx, ty), cv2.FONT_HERSHEY_SIMPLEX, 1.05, (int(200 * alpha), int(230 * alpha), 255), 2, cv2.LINE_AA)
+
+
+class ChidoriEffect:
+    def __init__(self) -> None:
+        self.active = False
+        self.cx, self.cy = 0, 0
+        self.start_time = 0.0
+        self.duration = 4.0
+
+    def activate(self, cx: int, cy: int) -> None:
+        self.active = True
+        self.cx, self.cy = cx, cy
+        self.start_time = time.time()
+
+    def _bolt(self, frame: np.ndarray, x1: int, y1: int, x2: int, y2: int, color: Tuple[int, int, int], width: int = 1) -> None:
+        dx, dy = x2 - x1, y2 - y1
+        steps = max(abs(dx), abs(dy)) // 6
+        if steps == 0:
+            return
+        pts = [(x1, y1)]
+        for i in range(1, steps):
+            t = i / float(steps)
+            pts.append((int(x1 + dx * t + random.randint(-12, 12)), int(y1 + dy * t + random.randint(-12, 12))))
+        pts.append((x2, y2))
+        for i in range(len(pts) - 1):
+            cv2.line(frame, pts[i], pts[i + 1], color, width, cv2.LINE_AA)
+
+    def update_and_draw(self, frame: np.ndarray, cx: int, cy: int) -> None:
+        if not self.active:
+            return
+        elapsed = time.time() - self.start_time
+        if elapsed > self.duration:
+            self.active = False
+            return
+        self.cx, self.cy = cx, cy
+        alpha = max(0.0, 1.0 - elapsed / self.duration)
+        ov = frame.copy()
+        for r in range(50, 10, -8):
+            cv2.circle(ov, (cx, cy), r, (255, 255, int(100 * alpha)), -1)
+        for ad in range(0, 360, 30):
+            a = math.radians(ad + random.randint(-10, 10))
+            l = random.randint(40, 80)
+            self._bolt(ov, cx, cy, int(cx + l * math.cos(a)), int(cy + l * math.sin(a)), (int(200 * alpha), int(200 * alpha), 255), 1)
+        cv2.circle(ov, (cx, cy), 15, (255, 255, 255), -1)
+        cv2.addWeighted(ov, 0.8, frame, 0.2, 0, frame)
+        cv2.putText(frame, "CHIDORI!", (cx - 50, cy - 80), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (200, 200, 255), 2, cv2.LINE_AA)
+
+
+class FireballEffect:
+    def __init__(self) -> None:
+        self.active = False
+        self.cx, self.cy = 0, 0
+        self.start_time = 0.0
+        self.duration = 3.5
+        self.particles: List[NinjutsuParticle] = []
+
+    def activate(self, cx: int, cy: int) -> None:
+        self.active = True
+        self.cx, self.cy = cx, cy
+        self.start_time = time.time()
+        self.particles = []
+
+    def update_and_draw(self, frame: np.ndarray, cx: int, cy: int) -> None:
+        if not self.active:
+            return
+        elapsed = time.time() - self.start_time
+        if elapsed > self.duration:
+            self.active = False
+            self.particles = []
+            return
+        self.cx, self.cy = cx, cy
+        for _ in range(8):
+            ang = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(1, 4)
+            self.particles.append(NinjutsuParticle(
+                cx, cy, speed * math.cos(ang), speed * math.sin(ang) - random.uniform(1, 3),
+                random.choice([(0, 50, 255), (0, 120, 255), (0, 200, 255), (0, 255, 200)]),
+                random.randint(15, 30), random.randint(4, 10)
+            ))
+        ov = frame.copy()
+        for r in [50, 35, 20]:
+            cv2.circle(ov, (cx, cy), r, (0, max(0, 255 - r * 3 - 100), 255), -1)
+        cv2.addWeighted(ov, 0.6, frame, 0.4, 0, frame)
+        self.particles = [p for p in self.particles if p.life > 0]
+        for p in self.particles:
+            p.update()
+            p.draw(frame)
+        cv2.putText(frame, "FIRE STYLE!", (cx - 70, cy - 80), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 100, 255), 2, cv2.LINE_AA)
+
+
+class ShadowCloneEffect:
+    def __init__(self) -> None:
+        self.active = False
+        self.start_time = 0.0
+        self.duration = 5.0
+
+    def activate(self) -> None:
+        self.active = True
+        self.start_time = time.time()
+
+    def apply(self, frame: np.ndarray) -> np.ndarray:
+        if not self.active:
+            return frame
+        if time.time() - self.start_time > self.duration:
+            self.active = False
+            return frame
+        h, w = frame.shape[:2]
+        clone = cv2.flip(frame.copy(), 1)
+        clone[:, :, 0] = np.clip(clone[:, :, 0].astype(int) + 40, 0, 255)
+        combined = np.hstack([cv2.resize(frame, (w // 2, h)), cv2.resize(clone, (w // 2, h))])
+        cv2.putText(combined, "YOU", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+        cv2.putText(combined, "SHADOW CLONE", (w // 2 + 10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (50, 50, 255), 2)
+        cv2.putText(combined, "SHADOW CLONE JUTSU!", (w // 4 - 80, h - 20), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 200, 255), 2)
+        return combined
+
+
+class HandSignClassifier:
+    @staticmethod
+    def classify_sign(pts: List[Tuple[int, int]]) -> str:
+        if not pts or len(pts) < 21:
+            return "UNKNOWN"
+        def fu(tip_idx: int, pip_idx: int) -> bool:
+            return pts[tip_idx][1] < pts[pip_idx][1]
+
+        idx = fu(8, 6)
+        mid = fu(12, 10)
+        rng = fu(16, 14)
+        pnk = fu(20, 18)
+
+        if idx and mid and not rng and not pnk: return "SNAKE"
+        if idx and not mid and not rng and pnk: return "RAM"
+        if not idx and mid and rng and not pnk: return "BOAR"
+        if idx and mid and rng and pnk: return "BIRD"
+        if not idx and not mid and not rng and not pnk: return "MONKEY"
+        if idx and not mid and not rng and not pnk: return "HORSE"
+        if not idx and not mid and rng and pnk: return "DOG"
+        if idx and mid and not rng and pnk: return "OX"
+        if not idx and mid and not rng and not pnk: return "TIGER"
+        if not idx and not mid and not rng and pnk: return "HARE"
+        return "UNKNOWN"
+
+    @staticmethod
+    def detect_clap(hand_pts_list: List[List[Tuple[int, int]]], clap_dist_px: float = 90.0) -> Optional[Tuple[int, int]]:
+        if len(hand_pts_list) < 2:
+            return None
+        p1 = hand_pts_list[0][9]
+        p2 = hand_pts_list[1][9]
+        dist = GeometryUtils.euclidean_dist(p1, p2)
+        if dist < clap_dist_px:
+            cx = (p1[0] + p2[0]) // 2
+            cy = (p1[1] + p2[1]) // 2
+            return (cx, cy)
+        return None
+
+
 class GeometryUtils:
     @staticmethod
     def euclidean_dist(p1: Tuple[int, int], p2: Tuple[int, int]) -> float:
@@ -993,6 +1434,30 @@ class PortalProcessor:
         self._frame_count = 0
         self._detect_every = 2  # ponytail: skip-frame detection, smoother fills gaps
 
+        # Naruto Ninjutsu Engines (Rasengan, Fire Style, Chidori, Shadow Clone, Blast)
+        self.blast = NinjutsuBlast()
+        self.rasengan = RasenganEffect(self.blast)
+        self.chidori = ChidoriEffect()
+        self.fireball = FireballEffect()
+        self.shadow_clone = ShadowCloneEffect()
+        self.last_jutsu_hand_pos = (cfg.frame_width // 2, cfg.frame_height // 2)
+
+    def trigger_rasengan(self) -> None:
+        self.rasengan.activate(*self.last_jutsu_hand_pos)
+        self.toast_mgr.add("Jutsu: RASENGAN! 🌀", "J", 3.0)
+
+    def trigger_fireball(self) -> None:
+        self.fireball.activate(*self.last_jutsu_hand_pos)
+        self.toast_mgr.add("Jutsu: FIRE STYLE! 🔥", "J", 3.0)
+
+    def trigger_chidori(self) -> None:
+        self.chidori.activate(*self.last_jutsu_hand_pos)
+        self.toast_mgr.add("Jutsu: CHIDORI! ⚡", "J", 3.0)
+
+    def trigger_shadow_clone(self) -> None:
+        self.shadow_clone.activate()
+        self.toast_mgr.add("Jutsu: SHADOW CLONE! 👥", "J", 3.0)
+
     @property
     def current_filter_name(self) -> str:
         return self.filter_keys[self.active_filter_idx]
@@ -1201,6 +1666,16 @@ class PortalProcessor:
         is_bowtie = False
 
         if hands:
+            # Clap detection triggers Rasengan 🌀
+            clap_pos = HandSignClassifier.detect_clap(hands)
+            if clap_pos and not self.rasengan.active:
+                self.rasengan.activate(*clap_pos)
+                self.toast_mgr.add("CLAP 👏 -> RASENGAN! 🌀", "J", 3.0)
+
+            # Update primary hand position for jutsu center
+            if len(hands[0]) >= 21:
+                self.last_jutsu_hand_pos = (hands[0][9][0], hands[0][9][1])
+
             for hand_pts in hands:
                 if not hand_pts:
                     continue
@@ -1236,6 +1711,16 @@ class PortalProcessor:
                 t1, t2 = all_hand_tips[0], all_hand_tips[1]
                 if t1 and t2:
                     frame = self.render_portal(frame, t1 + t2, self.current_filter_name)
+
+        # --- Render Active Ninjutsu Effects (Rasengan, Fireball, Chidori, Blast, Shadow Clone) ---
+        if self.rasengan.active:
+            self.rasengan.update_and_draw(frame, *self.last_jutsu_hand_pos)
+        if self.chidori.active:
+            self.chidori.update_and_draw(frame, *self.last_jutsu_hand_pos)
+        if self.fireball.active:
+            self.fireball.update_and_draw(frame, *self.last_jutsu_hand_pos)
+        self.blast.update_and_draw(frame)
+        frame = self.shadow_clone.apply(frame)
 
         if self.pinch_anim_frames > 0 and self.pinch_anim_point is not None:
             r = (7 - self.pinch_anim_frames) * 6
@@ -1311,8 +1796,8 @@ class PortalProcessor:
         cv2.line(glass_footer, (0, 0), (w, 0), (80, 80, 100), 1)
         frame[h - 32:h, 0:w] = glass_footer
 
-        controls_str = "[A] Auto 2s | [T] Theme | [1-5/F] Fingers | [S] Snap | [N/P] Filter | [R] Rec | [Q] Quit"
-        cv2.putText(frame, controls_str, (15, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (180, 180, 200), 1)
+        controls_str = "[A] Auto 2s | [T] Theme | [J/1] Rasengan 🌀 | [K/2] Fire 🔥 | [L/3] Chidori ⚡ | [B/4] Clone 👥 | [CLAP] 👏 | [Q] Quit"
+        cv2.putText(frame, controls_str, (15, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (180, 180, 200), 1)
 
 
 def main() -> None:
@@ -1364,8 +1849,8 @@ def main() -> None:
 
     cv2.namedWindow("HandFlux Pro Engine", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("HandFlux Pro Engine", cfg.frame_width, cfg.frame_height)
-    print("[INFO] HandFlux Pro berjalan (32 Filters, 4 Themes, Auto-Cycle Mode Available).")
-    print("[INFO] Kontrol: [A] Auto-Cycle 2s | [T] Switch Theme | [S] Screenshot | [1-5 / F] Jari | [Q] Keluar")
+    print("[INFO] HandFlux Pro berjalan (40 Filters, 5 Themes, Naruto Ninjutsu Engine).")
+    print("[INFO] Ninjutsu: [CLAP] Tepuk Tangan / [J] Rasengan | [K] Katon Fire | [L] Chidori | [B] Shadow Clone")
 
     try:
         while True:
@@ -1397,8 +1882,16 @@ def main() -> None:
                 processor.capture_screenshot(out_frame)
             elif key in (ord("g"), ord("G")):
                 processor.toggle_gesture_snap()
-            elif key in (ord("1"), ord("2"), ord("3"), ord("4"), ord("5")):
-                processor.set_active_fingers(int(chr(key)))
+            elif key in (ord("j"), ord("J"), ord("1")):
+                processor.trigger_rasengan()
+            elif key in (ord("k"), ord("K"), ord("2")):
+                processor.trigger_fireball()
+            elif key in (ord("l"), ord("L"), ord("3")):
+                processor.trigger_chidori()
+            elif key in (ord("b"), ord("B"), ord("4")):
+                processor.trigger_shadow_clone()
+            elif key in (ord("5"),):
+                processor.set_active_fingers(5)
             elif key in (ord("f"), ord("F")):
                 processor.cycle_active_fingers()
             elif key in (ord("c"), ord("C")):
