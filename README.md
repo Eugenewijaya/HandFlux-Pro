@@ -24,12 +24,14 @@
 ## 🇮🇩 Bahasa Indonesia
 
 ### 📖 Tentang HandFlux Pro
-**HandFlux Pro** adalah ekosistem aplikasi *Computer Vision* interaktif berbasis Python, OpenCV, dan MediaPipe. Repositori ini memiliki 2 aplikasi utama yang terpisah secara fokus:
+**HandFlux Pro** adalah ekosistem aplikasi *Computer Vision* interaktif berbasis Python, OpenCV, dan MediaPipe. Repositori ini memiliki 3 aplikasi utama yang terpisah secara spesifik:
 
 1. **`HandFlux.py` — Real-Time Visual Filter Portal Engine (Fokus Utama Filter)**:
    Aplikasi portal visual murni dengan **40 filter visual premium** yang dikategorikan ke dalam 5 tema (*Cinematic, Anime, Cyberpunk, Artistic, Exotic*), **Auto-Cycle 2s Mode**, deteksi jari berdiri, dan performa tinggi 120 FPS.
 2. **`naruto_jutsu.py` — Standalone Naruto Ninjutsu Camera Engine (Fokus Jurus Anime)**:
-   Aplikasi khusus jurus Ninjutsu interaktif yang memanfaatkan integrasi Kaggle Model (`menhari/naruto-hand-guesture-rasengan`). Rilis **Rasengan 🌀** dengan pita chakra 3D & ledakan Blast 💥 via **Tepuk Tangan (CLAP 👏)**, **Katon Fireball 🔥**, **Chidori ⚡**, dan **Shadow Clone 👥** secara terpisah!
+   Aplikasi khusus jurus Ninjutsu interaktif yang memanfaatkan integrasi Kaggle Model (`menhari/naruto-hand-guesture-rasengan`). Rilis **Rasengan 🌀** dengan pita chakra 3D & ledakan Blast 💥 via **Tepuk Tangan (CLAP 👏)**, **Katon Fireball 🔥**, **Chidori ⚡**, dan **Shadow Clone 👥**!
+3. **`foto_kita_blur.py` — Standalone Foto Kita Blur Camera Engine (Fokus Romantis V-Sign)**:
+   Aplikasi khusus pendeteksi gestur tangan "V" (Peace Sign ✌️) yang mengaktifkan **Efek Screen Blur 40%** dan animasi **Balon Hati / Love Emoticons** melayang ke atas, serta menyimpan foto secara privat di folder lokal `foto kita blurr/`.
 
 ---
 
@@ -56,11 +58,12 @@
 | **🔄 Auto-Cycle Mode 2 Detik (`A`)** | Filter otomatis berganti setiap 2 detik secara acak tanpa perlu melakukan gestur cubit! |
 | **🏷️ Theme Category Switcher (`T`)** | Pilih kategori tema khusus (Cinematic, Anime, Cyber, Artistic, Exotic) atau jalankan seluruh filter secara acak. |
 | **🍃 Standalone Naruto Ninjutsu Engine** | Aplikasi terpisah `naruto_jutsu.py` khusus jurus **Rasengan 🌀**, **Fire Style 🔥**, **Chidori ⚡**, dan **Shadow Clone 👥**! |
+| **❤️ Standalone Foto Kita Blur Engine** | Aplikasi terpisah `foto_kita_blur.py` khusus **Love Blur 40%** & **Balon Hati 🎈** via gestur V (✌️)! |
 | **🖐️ Smart Standing Finger Filter** | Hanya mendeteksi dan menggunakan jari yang **berdiri tegak**. Jari yang dilipat ke telapak tangan otomatis diabaikan! |
 | **📐 CCW Polar Angle Sorting** | Poligon portal diurutkan berlawanan arah jarum jam secara matematis. **Portal 100% TIDAK AKAN KELIPET ATAU MENYILANG**! |
 | **✨ Velocity-Predicting Tracker** | Pelacak gerakan tangan berbasis *Velocity Prediction & Ghost Frames (12 frames)* untuk pergerakan portal mulus tanpa flicker. |
 | **🖥️ Glassmorphic HUD & Toasts** | Tampilan antarmuka transparan futuristik dilengkapi sistem notifikasi mengambang (*floating toast system*). |
-| **🖱️ One-Click Desktop Launcher** | Dilengkapi file batch & shortcut instan untuk kedua aplikasi di Windows. |
+| **🖱️ One-Click Desktop Launcher** | Dilengkapi file batch & shortcut instan untuk ketiga aplikasi di Windows. |
 | **⚡ High Frame-Rate Throughput** | Didukung optimasi buffer kamera real-time yang mampu membuka performa hingga 120 FPS. |
 
 ---
@@ -71,6 +74,7 @@
 | --- | --- |
 | 🖼️ **Filter Portal (`HandFlux.py`)** | `python HandFlux.py` (atau `python HandFlux.py --auto-cycle`) |
 | 🍃 **Naruto Ninjutsu (`naruto_jutsu.py`)** | `python naruto_jutsu.py` (atau klik `Run Naruto Jutsu.bat`) |
+| ❤️ **Foto Kita Blur (`foto_kita_blur.py`)** | `python foto_kita_blur.py` (atau klik `Run Foto Kita Blur.bat`) |
 | 🔄 **Tombol `A`** | Toggle Auto-Cycle Mode (Filter ganti otomatis per 2s) |
 | 🏷️ **Tombol `T`** | Switch Kategori Tema Filter |
 | 🔢 **Tombol `1` - `5`** | Jumlah Jari Aktif Portal (1=Lingkaran, ..., 5=Hand Polygon) |
