@@ -5,10 +5,20 @@ __pycache__/
 .Python
 venv/
 env/
+.venv/
+.pip-cache/
+deps/
 *.egg-info/
 
-# Screenshot & output hasil testing
+# MediaPipe Task Models
+*.task
+hand_landmarker.task
+
+# Captures & Output
+captures/
+test_captures/
 cap_*.png
+rec_*.mp4
 portal_screenshot_*.png
 *.png
 !demo.png
