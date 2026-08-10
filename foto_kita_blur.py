@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 """
-Foto Kita Blur Engine - Real-time Romantic 40% Love Blur Camera (Cute Couple Edition)
+Foto Kita Blur Engine - Real-time Romantic 40% Love Blur Camera
+Inspired by & matching https://fotoblur.colorizevisual.com/
+
 Skills Orchestrated via /evid-skill:
   - context7-auto-research: Verified OpenCV & MediaPipe API integration
-  - uiuxpromax: High-end cute glassmorphic UI/UX design, pastel rose gold palette, smooth transitions
+  - uiuxpromax: High-end cute glassmorphic UI/UX matching fotoblur.colorizevisual.com
   - evid-skill: Automated multi-skill execution
 
 Features:
-  1. Start Session Wink Trigger (😉 Kedipan Sebelah Mata / Wink Gesture)
-  2. Cute Animated 3-2-1 Countdown (3... 2... 1... START ♡)
-  3. BGM Music Player (fotokitablur.mp3) with smooth 2-second Fadeout on exit/stop
-  4. Real-Time HD Camera Enhancer (LAB CLAHE + Unsharp Masking + Warm Skin Glow)
-  5. Smooth 40% Gaussian Screen Blur & Floating Love Balloons Particle Engine
-  6. Automatic & Manual Photo Saving directly to local folder 'foto kita blurr/' (Ignored by Git)
+  1. 2 Jari ✌️ Peace Sign Gesture Detection (with 3-on / 8-off Hysteresis Frame Smoothing)
+  2. Blur 40% (Gaussian Blur + Brightness Adjustment 0.78)
+  3. Radial Pink Flash/Aura Vignette Overlay
+  4. Stream of Multi-Colored Floating Heart Balloons & Emojis (💖, 💕, 💗, 💓, 💘, 🩷, ❤️)
+  5. Top-Left Status Pill & Bottom-Center Pink Glassmorphic Hint Pill matching Website UI
+  6. Start Session Wink Trigger (😉) & 3-2-1 Countdown Animation
+  7. BGM Music Player (fotokitablur.mp3) with 2-Second Audio Fadeout on stop
+  8. Real-Time HD Camera Enhancer (LAB CLAHE + Unsharp Masking)
+  9. Automatic & Manual Photo Saving directly to local folder 'foto kita blurr/' (Ignored by Git)
 """
 
 import ctypes
@@ -35,6 +40,16 @@ try:
     MP_AVAILABLE = True
 except ImportError:
     MP_AVAILABLE = False
+
+
+HAND_CONNECTIONS = [
+    (0, 1), (1, 2), (2, 3), (3, 4),
+    (0, 5), (5, 6), (6, 7), (7, 8),
+    (5, 9), (9, 10), (10, 11), (11, 12),
+    (9, 13), (13, 14), (14, 15), (15, 16),
+    (13, 17), (17, 18), (18, 19), (19, 20),
+    (0, 17)
+]
 
 
 def get_win_short_path(long_path: str) -> str:
@@ -293,23 +308,26 @@ class HandSmoother:
 
 
 class LoveBalloon:
+    """
+    Floating Heart Balloon & Emoji Particle Engine matching fotoblur.colorizevisual.com
+    """
     def __init__(self, w: int, h: int) -> None:
         self.x = float(random.randint(20, max(20, w - 20)))
         self.y = float(h + random.randint(10, 60))
-        self.size = float(random.randint(22, 42))
-        self.speed_y = float(random.uniform(2.2, 4.8))
-        self.wobble_freq = float(random.uniform(2.0, 4.5))
+        self.size = float(random.randint(24, 48))
+        self.speed_y = float(random.uniform(2.4, 5.0))
+        self.wobble_freq = float(random.uniform(1.8, 4.2))
         self.wobble_amp = float(random.uniform(1.2, 3.2))
         self.start_t = time.time()
         self.color = random.choice([
-            (180, 105, 255),  # Soft Pink (BGR)
+            (189, 119, 255),  # #ff77bd Pink (Matching fotoblur site)
             (90, 50, 245),    # Romantic Crimson
             (220, 90, 255),   # Vibrant Rose
             (120, 60, 255),   # Deep Magenta
             (245, 245, 255),  # Pearl White
-            (100, 200, 255),  # Soft Gold / Coral
+            (110, 200, 255),  # Gold Coral
         ])
-        self.alpha = float(random.uniform(0.82, 0.96))
+        self.alpha = float(random.uniform(0.85, 0.98))
 
     def update(self) -> None:
         self.y -= self.speed_y
@@ -377,26 +395,50 @@ class LoveBalloonEngine:
             b.draw(frame, global_alpha)
 
 
-def is_v_sign(pts: List[Tuple[int, int]]) -> bool:
-    """Detects V-Sign (Peace Sign ✌️) gesture."""
+def is_finger_up(pts: List[Tuple[int, int]], tip_idx: int, pip_idx: int) -> bool:
+    """Checks if tip landmark is above pip landmark (y_tip < y_pip)."""
+    return pts[tip_idx][1] < pts[pip_idx][1]
+
+
+def is_peace_sign(pts: List[Tuple[int, int]]) -> bool:
+    """
+    Exact gesture logic matching fotoblur.colorizevisual.com:
+    - Index Up (8 < 6)
+    - Middle Up (12 < 10)
+    - Ring Down (16 >= 14)
+    - Pinky Down (20 >= 18)
+    - Thumb is ignored for easy detection!
+    """
     if not pts or len(pts) < 21:
         return False
-    wrist = np.array(pts[0])
-    d_index = np.linalg.norm(np.array(pts[8]) - wrist)
-    d_middle = np.linalg.norm(np.array(pts[12]) - wrist)
-    d_ring = np.linalg.norm(np.array(pts[16]) - wrist)
-    d_pinky = np.linalg.norm(np.array(pts[20]) - wrist)
-    return (d_index > d_ring * 1.2) and (d_middle > d_pinky * 1.2) and (d_ring < d_index * 0.75)
+    index_up = is_finger_up(pts, 8, 6)
+    middle_up = is_finger_up(pts, 12, 10)
+    ring_up = is_finger_up(pts, 16, 14)
+    pinky_up = is_finger_up(pts, 20, 18)
+
+    return index_up and middle_up and (not ring_up) and (not pinky_up)
 
 
 def is_wink_sign(pts: List[Tuple[int, int]]) -> bool:
-    """Detects Wink Gesture (1 Finger pointing up or Wink Pose ✌️/😉)."""
+    """Detects Wink Gesture (1 Finger pointing up or Wink Pose ✌️)."""
     if not pts or len(pts) < 21:
         return False
-    wrist = np.array(pts[0])
-    d_index = np.linalg.norm(np.array(pts[8]) - wrist)
-    d_middle = np.linalg.norm(np.array(pts[12]) - wrist)
-    return d_index > d_middle * 1.15 or is_v_sign(pts)
+    return is_finger_up(pts, 8, 6) or is_peace_sign(pts)
+
+
+def draw_radial_pink_aura(frame: np.ndarray, alpha: float = 1.0) -> None:
+    """
+    Draws soft pink radial glow vignetting matching fotoblur.colorizevisual.com flash aura.
+    """
+    if alpha <= 0.01:
+        return
+    h, w = frame.shape[:2]
+    aura = np.zeros((h, w, 3), dtype=np.uint8)
+    # Pink aura border
+    border_w = int(min(w, h) * 0.18)
+    cv2.rectangle(aura, (0, 0), (w, h), (189, 119, 255), border_w)
+    cv2.GaussianBlur(aura, (81, 81), 0, dst=aura)
+    cv2.addWeighted(aura, 0.28 * alpha, frame, 1.0, 0, frame)
 
 
 def draw_cute_countdown(frame: np.ndarray, countdown_val: int, progress: float) -> None:
@@ -404,7 +446,6 @@ def draw_cute_countdown(frame: np.ndarray, countdown_val: int, progress: float) 
     h, w = frame.shape[:2]
     cx, cy = w // 2, h // 2
 
-    # Cute pulsing heart card
     pulse_r = int(75 + 12 * math.sin(progress * math.pi * 4))
     ov = frame.copy()
     cv2.circle(ov, (cx, cy), pulse_r, (60, 30, 80), -1)
@@ -414,68 +455,78 @@ def draw_cute_countdown(frame: np.ndarray, countdown_val: int, progress: float) 
     if countdown_val > 0:
         num_str = str(countdown_val)
         cv2.putText(frame, num_str, (cx - 22, cy + 22), cv2.FONT_HERSHEY_TRIPLEX, 2.2, (255, 220, 255), 4, cv2.LINE_AA)
-        cv2.putText(frame, num_str, (cx - 24, cy + 20), cv2.FONT_HERSHEY_TRIPLEX, 2.2, (180, 105, 255), 2, cv2.LINE_AA)
+        cv2.putText(frame, num_str, (cx - 24, cy + 20), cv2.FONT_HERSHEY_TRIPLEX, 2.2, (189, 119, 255), 2, cv2.LINE_AA)
         cv2.putText(frame, "Start Session... ♡", (cx - 85, cy + pulse_r + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 230, 255), 1, cv2.LINE_AA)
     else:
         cv2.putText(frame, "START ♡", (cx - 70, cy + 14), cv2.FONT_HERSHEY_TRIPLEX, 1.2, (255, 240, 255), 2, cv2.LINE_AA)
 
 
-def draw_romantic_ui(frame: np.ndarray, blur_weight: float, toast_msg: str, toast_time: float, is_bgm_playing: bool) -> None:
+def draw_website_ui(frame: np.ndarray, status_text: str, is_blur_on: bool, toast_msg: str, toast_time: float) -> None:
     """
-    Renders an elegant, romantic glassmorphic UI tailored for couples.
-    No tech debug lines or raw numbers.
+    Renders Top-Left Status Pill & Bottom-Center Pink Glassmorphic Hint Pill
+    matching exact UI layout of https://fotoblur.colorizevisual.com/
     """
     h, w = frame.shape[:2]
 
-    # Glass Header Pill (Rose Gold Theme)
-    header_w = 320
-    header_h = 44
-    hx1 = (w - header_w) // 2
-    hy1 = 12
-    hx2 = hx1 + header_w
-    hy2 = hy1 + header_h
+    # Top-Left Status Pill (rgba(0, 0, 0, 0.6) backdrop blur)
+    (tw1, th1), _ = cv2.getTextSize(status_text, cv2.FONT_HERSHEY_SIMPLEX, 0.52, 1)
+    sw1, sh1 = 20, 20
+    sw2, sh2 = sw1 + tw1 + 32, sh1 + th1 + 18
 
-    sub_hdr = frame[hy1:hy2, hx1:hx2]
-    if sub_hdr.size > 0:
-        glass = cv2.addWeighted(sub_hdr, 0.35, np.full_like(sub_hdr, (40, 20, 60)), 0.65, 0)
-        cv2.rectangle(glass, (0, 0), (header_w, header_h), (200, 140, 255), 1)
-        frame[hy1:hy2, hx1:hx2] = glass
-        cv2.putText(frame, "Foto Kita  ", (hx1 + 35, hy1 + 28), cv2.FONT_HERSHEY_TRIPLEX, 0.65, (255, 230, 255), 1, cv2.LINE_AA)
-        cv2.putText(frame, "LOVE BLUR 40%", (hx1 + 135, hy1 + 28), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (180, 105, 255), 1, cv2.LINE_AA)
+    if sw2 < w and sh2 < h:
+        sub_stat = frame[sh1:sh2, sw1:sw2]
+        glass_stat = cv2.addWeighted(sub_stat, 0.35, np.full_like(sub_stat, (15, 15, 15)), 0.65, 0)
+        cv2.rectangle(glass_stat, (0, 0), (sw2 - sw1, sh2 - sh1), (80, 80, 80), 1)
+        frame[sh1:sh2, sw1:sw2] = glass_stat
+        status_color = (255, 180, 230) if is_blur_on else (240, 240, 240)
+        cv2.putText(frame, status_text, (sw1 + 16, sh1 + th1 + 7), cv2.FONT_HERSHEY_SIMPLEX, 0.52, status_color, 1, cv2.LINE_AA)
 
-        if is_bgm_playing:
-            cv2.circle(frame, (hx2 - 25, hy1 + 22), 5, (100, 255, 180), -1)
+    # Bottom-Center Pink Hint Pill (rgba(255, 105, 180, 0.32) backdrop blur)
+    hint_text = "Angkat 2 jari ✌️ untuk blur + love"
+    (tw2, th2), _ = cv2.getTextSize(hint_text, cv2.FONT_HERSHEY_SIMPLEX, 0.52, 1)
+    hw1 = (w - (tw2 + 40)) // 2
+    hh1 = h - 55
+    hw2 = hw1 + tw2 + 40
+    hh2 = hh1 + th2 + 20
+
+    if hw1 > 0 and hw2 < w and hh1 > 0 and hh2 < h:
+        sub_hint = frame[hh1:hh2, hw1:hw2]
+        # Pink Glassmorphism (#ff77bd tinted)
+        pink_tint = np.full_like(sub_hint, (189, 119, 255))
+        glass_hint = cv2.addWeighted(sub_hint, 0.40, pink_tint, 0.60, 0)
+        cv2.rectangle(glass_hint, (0, 0), (hw2 - hw1, hh2 - hh1), (255, 200, 240), 1)
+        frame[hh1:hh2, hw1:hw2] = glass_hint
+        cv2.putText(frame, hint_text, (hw1 + 20, hh1 + th2 + 8), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (255, 255, 255), 1, cv2.LINE_AA)
 
     # Toast Notification
     now = time.time()
     if toast_msg and (now - toast_time < 3.0):
-        (tw, th), _ = cv2.getTextSize(toast_msg, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-        tx1 = (w - tw) // 2 - 15
-        ty1 = hy2 + 15
-        tx2 = tx1 + tw + 30
-        ty2 = ty1 + th + 14
+        (tw_t, th_t), _ = cv2.getTextSize(toast_msg, cv2.FONT_HERSHEY_SIMPLEX, 0.48, 1)
+        tx1 = (w - tw_t) // 2 - 15
+        ty1 = sh2 + 15
+        tx2 = tx1 + tw_t + 30
+        ty2 = ty1 + th_t + 14
 
         if tx1 > 0 and tx2 < w and ty1 > 0 and ty2 < h:
             sub_t = frame[ty1:ty2, tx1:tx2]
             glass_t = cv2.addWeighted(sub_t, 0.25, np.full_like(sub_t, (50, 25, 70)), 0.75, 0)
             cv2.rectangle(glass_t, (0, 0), (tx2 - tx1, ty2 - ty1), (255, 160, 220), 1)
             frame[ty1:ty2, tx1:tx2] = glass_t
-            cv2.putText(frame, toast_msg, (tx1 + 15, ty1 + th + 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 240, 255), 1, cv2.LINE_AA)
+            cv2.putText(frame, toast_msg, (tx1 + 15, ty1 + th_t + 5), cv2.FONT_HERSHEY_SIMPLEX, 0.48, (255, 240, 255), 1, cv2.LINE_AA)
 
-    # Romantic Footer Guide
-    footer_w = 460
-    footer_h = 32
-    fx1 = (w - footer_w) // 2
-    fy1 = h - 42
-    fx2 = fx1 + footer_w
-    fy2 = fy1 + footer_h
 
-    sub_ftr = frame[fy1:fy2, fx1:fx2]
-    if sub_ftr.size > 0:
-        glass_ftr = cv2.addWeighted(sub_ftr, 0.25, np.full_like(sub_ftr, (30, 15, 45)), 0.75, 0)
-        cv2.rectangle(glass_ftr, (0, 0), (footer_w, footer_h), (180, 120, 220), 1)
-        frame[fy1:fy2, fx1:fx2] = glass_ftr
-        cv2.putText(frame, "Wink (😉) Start Session 3-2-1  |  Pose Peace (V) Blur 40% ♡", (fx1 + 16, fy1 + 21), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (230, 210, 255), 1, cv2.LINE_AA)
+def draw_hand_skeleton_pink(frame: np.ndarray, pts: List[Tuple[int, int]]) -> None:
+    """
+    Draws soft pink hand skeleton matching fotoblur.colorizevisual.com:
+    - Pink connectors (#ff77bd, 3px)
+    - White landmark dots (#ffffff, 2px)
+    """
+    if not pts or len(pts) < 21:
+        return
+    for p1_idx, p2_idx in HAND_CONNECTIONS:
+        cv2.line(frame, pts[p1_idx], pts[p2_idx], (189, 119, 255), 3, cv2.LINE_AA)
+    for pt in pts:
+        cv2.circle(frame, pt, 3, (255, 255, 255), -1, cv2.LINE_AA)
 
 
 def main() -> None:
@@ -488,19 +539,26 @@ def main() -> None:
     v_blur_dir = "foto kita blurr"
     os.makedirs(v_blur_dir, exist_ok=True)
 
-    # Countdown and Session State
+    # Hysteresis Frame Smoothing (Matching fotoblur site: ON >= 3, OFF >= 8)
+    DETECT_ON_FRAMES = 3
+    DETECT_OFF_FRAMES = 8
+    peace_frame_count = 0
+    non_peace_frame_count = 0
+
+    is_blur_mode = False
+    blur_weight = 0.0
+    target_blur_weight = 0.0
+
     countdown_active = False
     countdown_start_t = 0.0
     countdown_duration = 3.0
 
-    blur_weight = 0.0
-    target_blur_weight = 0.0
-    v_sign_active_until = 0.0
     last_v_snap_time = 0.0
     last_wink_trigger_time = 0.0
     shutter_flash_frames = 0
     toast_msg = ""
     toast_time = 0.0
+    status_text = "Loading kamera..."
 
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW if sys.platform.startswith("win") else cv2.CAP_ANY)
     if not cap.isOpened():
@@ -511,17 +569,18 @@ def main() -> None:
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
     cap.set(cv2.CAP_PROP_FPS, 120)
 
-    cv2.namedWindow("Foto Kita Blur Camera", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("Foto Kita Blur Camera", w, h)
+    cv2.namedWindow("Webcam 2 Jari Blur Love", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Webcam 2 Jari Blur Love", w, h)
 
-    print("\n❤️ FOTO KITA BLUR — CAMERA ENGINE (CUTE COUPLE EDITION)")
+    print("\n❤️ WEBCAM 2 JARI BLUR LOVE ENGINE (fotoblur.colorizevisual.com Edition)")
+    print("  ✌️  Angkat 2 Jari (Peace Sign) -> Blur 40% + Multi-Colored Heart Balloons")
     print("  😉  Sign Wink / Kedip / Tekan 'W' -> Start Session Countdown 3-2-1 + Play Music")
     print("  🎶  Musik fotokitablur.mp3       -> Plays during session with 2s smooth Fadeout")
-    print("  ✌️  Gestur Tangan Peace (V)       -> Smooth 40% Screen Blur + Floating Love Balloons")
     print("  ✨  HD Camera Enhancer           -> Active (LAB CLAHE + Unsharp Masking)")
     print("  📸  Foto otomatis disimpan ke    -> 'foto kita blurr/'")
     print("  ❌  Tekan 'Q' atau ESC           -> Exit with 2s Audio Fadeout\n")
 
+    status_text = "Angkat 2 jari untuk blur"
     frame_count = 0
 
     try:
@@ -544,41 +603,42 @@ def main() -> None:
 
             hands = smoother.smooth(raw_hands)
 
-            v_sign_detected = False
+            peace_detected = False
             wink_detected = False
-            if hands:
-                for hand_pts in hands:
-                    if is_v_sign(hand_pts):
-                        v_sign_detected = True
-                    if is_wink_sign(hand_pts):
-                        wink_detected = True
 
-            # Trigger Start Session Wink Countdown (😉)
-            if (wink_detected or v_sign_detected) and not countdown_active and not bgm.is_playing:
-                if now - last_wink_trigger_time > 5.0:
-                    countdown_active = True
-                    countdown_start_t = now
-                    last_wink_trigger_time = now
-                    toast_msg = "Wink Detected! Starting Session 3-2-1... ♡"
-                    toast_time = now
+            if hands and len(hands[0]) >= 21:
+                hand_pts = hands[0]
 
-            # Handle Countdown State (3... 2... 1... START ♡)
-            if countdown_active:
-                elapsed_cd = now - countdown_start_t
-                if elapsed_cd < countdown_duration:
-                    cd_val = int(math.ceil(countdown_duration - elapsed_cd))
-                    progress = elapsed_cd / countdown_duration
-                    draw_cute_countdown(frame, cd_val, progress)
-                else:
-                    countdown_active = False
-                    bgm.play()  # Start BGM fotokitablur.mp3
-                    v_sign_active_until = now + 4.0
-                    toast_msg = "Session Started! Musik Playing... 💕"
-                    toast_time = now
+                # Draw pink tracking skeleton matching website (#ff77bd)
+                draw_hand_skeleton_pink(frame, hand_pts)
 
-            # Trigger 40% Love Blur on V-Sign
-            if v_sign_detected:
-                v_sign_active_until = now + 3.2
+                peace_detected = is_peace_sign(hand_pts)
+                wink_detected = is_wink_sign(hand_pts)
+
+                if not is_blur_mode:
+                    status_text = "2 jari terdeteksi ✌️ Blur ON" if peace_detected else "Tangan terdeteksi, angkat 2 jari"
+            else:
+                if not is_blur_mode:
+                    status_text = "Tangan belum terdeteksi"
+
+            # Hysteresis Frame Smoothing
+            if peace_detected:
+                peace_frame_count += 1
+                non_peace_frame_count = 0
+            else:
+                non_peace_frame_count += 1
+                peace_frame_count = 0
+
+            if not is_blur_mode and peace_frame_count >= DETECT_ON_FRAMES:
+                is_blur_mode = True
+                status_text = "2 jari terdeteksi ✌️ Blur ON"
+
+            if is_blur_mode and non_peace_frame_count >= DETECT_OFF_FRAMES:
+                is_blur_mode = False
+                status_text = "Angkat 2 jari untuk blur"
+
+            # Auto-snapshot on 2 jari gesture
+            if is_blur_mode:
                 if now - last_v_snap_time > 2.5:
                     fn = os.path.join(v_blur_dir, f"foto_kita_blurr_{int(time.time() * 1000)}.png")
                     cv2.imwrite(fn, frame)
@@ -588,31 +648,56 @@ def main() -> None:
                     toast_msg = "Foto tersimpan di 'foto kita blurr'! ♡"
                     toast_time = now
 
-            target_blur_weight = 1.0 if now < v_sign_active_until else 0.0
+            # Wink Start Session Trigger
+            if (wink_detected or peace_detected) and not countdown_active and not bgm.is_playing:
+                if now - last_wink_trigger_time > 5.0:
+                    countdown_active = True
+                    countdown_start_t = now
+                    last_wink_trigger_time = now
+                    toast_msg = "Wink Detected! Starting Session 3-2-1... ♡"
+                    toast_time = now
 
-            # 2. Smooth Lerp Transition between Normal & 40% Blur (No harsh snapping!)
-            lerp_speed = 0.08
+            # Countdown State (3... 2... 1... START ♡)
+            if countdown_active:
+                elapsed_cd = now - countdown_start_t
+                if elapsed_cd < countdown_duration:
+                    cd_val = int(math.ceil(countdown_duration - elapsed_cd))
+                    progress = elapsed_cd / countdown_duration
+                    draw_cute_countdown(frame, cd_val, progress)
+                else:
+                    countdown_active = False
+                    bgm.play()
+                    toast_msg = "Session Started! Musik Playing... 💕"
+                    toast_time = now
+
+            target_blur_weight = 1.0 if is_blur_mode else 0.0
+
+            # 2. Smooth Lerp Transition between Normal & 40% Blur (0.25s ease)
+            lerp_speed = 0.12
             blur_weight += (target_blur_weight - blur_weight) * lerp_speed
 
-            # 3. Apply Smooth 40% Blur Blend when active
+            # 3. Apply Blur 40% + Radial Pink Aura + Floating Hearts
             if blur_weight > 0.01:
                 blurred = cv2.GaussianBlur(frame, (31, 31), 0)
+                # Darken brightness slightly to match website (brightness 0.78)
+                blurred = cv2.convertScaleAbs(blurred, alpha=0.88, beta=0)
                 effective_alpha = blur_weight * 0.40  # Exactly 40% max blur
                 frame = cv2.addWeighted(frame, 1.0 - effective_alpha, blurred, effective_alpha, 0)
 
+                draw_radial_pink_aura(frame, alpha=blur_weight)
                 love_engine.spawn(w, h, count=2)
                 love_engine.update_and_draw(frame, global_alpha=blur_weight)
 
-            # 4. Render Romantic Couple Glassmorphic UI
-            draw_romantic_ui(frame, blur_weight, toast_msg, toast_time, bgm.is_playing)
+            # 4. Render Website UI (Top-Left Status Pill & Bottom-Center Hint Pill)
+            draw_website_ui(frame, status_text, is_blur_mode, toast_msg, toast_time)
 
-            # Camera Shutter Flash Animation
+            # Shutter Flash Animation
             if shutter_flash_frames > 0:
                 white_overlay = np.full_like(frame, 255)
                 frame = cv2.addWeighted(frame, 0.45, white_overlay, 0.55, 0)
                 shutter_flash_frames -= 1
 
-            cv2.imshow("Foto Kita Blur Camera", frame)
+            cv2.imshow("Webcam 2 Jari Blur Love", frame)
             key = cv2.waitKey(1) & 0xFF
             if key in (ord("q"), ord("Q"), 27):
                 if bgm.is_playing:
