@@ -901,7 +901,87 @@ class ToastManager:
                 frame[py1:py2, px1:px2] = glass
 
                 cv2.putText(frame, text, (px1 + 10, py1 + th + 6), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-            y_offset += th + 24
+class LoveBalloon:
+    def __init__(self, w: int, h: int) -> None:
+        self.x = float(random.randint(20, max(20, w - 20)))
+        self.y = float(h + random.randint(10, 60))
+        self.size = float(random.randint(18, 38))
+        self.speed_y = float(random.uniform(2.5, 5.2))
+        self.wobble_freq = float(random.uniform(2.0, 5.0))
+        self.wobble_amp = float(random.uniform(1.2, 3.5))
+        self.start_t = time.time()
+        self.color = random.choice([
+            (180, 105, 255),  # Soft Pink (BGR)
+            (80, 40, 240),    # Romantic Crimson
+            (220, 60, 255),   # Vibrant Magenta
+            (100, 50, 255),   # Deep Rose
+            (240, 240, 255),  # Pure White
+            (80, 215, 255),   # Warm Peach
+        ])
+        self.alpha = float(random.uniform(0.78, 0.95))
+
+    def update(self) -> None:
+        self.y -= self.speed_y
+        elapsed = time.time() - self.start_t
+        self.x += math.sin(elapsed * self.wobble_freq) * self.wobble_amp
+
+    def is_alive(self) -> bool:
+        return self.y > -80
+
+    def draw(self, frame: np.ndarray) -> None:
+        if not self.is_alive():
+            return
+        h, w = frame.shape[:2]
+        cx, cy = int(self.x), int(self.y)
+        sz = self.size
+
+        if cx < -50 or cx > w + 50 or cy < -50 or cy > h + 80:
+            return
+
+        top_alpha = min(1.0, max(0.0, (cy + 20) / 120.0)) * self.alpha
+
+        pts = []
+        num_pts = 30
+        for i in range(num_pts):
+            t = (2 * math.pi / num_pts) * i
+            hx = 16 * (math.sin(t) ** 3)
+            hy = -(13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t))
+            px = int(cx + hx * (sz / 16.0))
+            py = int(cy + hy * (sz / 16.0))
+            pts.append((px, py))
+
+        pts_np = np.array(pts, dtype=np.int32)
+        ov = frame.copy()
+        cv2.fillPoly(ov, [pts_np], self.color)
+        cv2.polylines(ov, [pts_np], True, (255, 255, 255), 1, cv2.LINE_AA)
+
+        hx_shine = int(cx - sz * 0.25)
+        hy_shine = int(cy - sz * 0.35)
+        cv2.circle(ov, (hx_shine, hy_shine), max(2, int(sz * 0.14)), (255, 255, 255), -1)
+
+        s_pts = []
+        for s in range(10):
+            sx = int(cx + math.sin(s * 0.6) * 3)
+            sy = int(cy + sz * 0.8 + s * 3.5)
+            s_pts.append((sx, sy))
+        cv2.polylines(ov, [np.array(s_pts, dtype=np.int32)], False, (220, 220, 220), 1, cv2.LINE_AA)
+
+        cv2.addWeighted(ov, top_alpha, frame, 1.0 - top_alpha, 0, frame)
+
+
+class LoveBalloonEngine:
+    def __init__(self) -> None:
+        self.balloons: List[LoveBalloon] = []
+
+    def spawn(self, w: int, h: int, count: int = 3) -> None:
+        for _ in range(count):
+            self.balloons.append(LoveBalloon(w, h))
+
+    def update_and_draw(self, frame: np.ndarray) -> None:
+        self.balloons = [b for b in self.balloons if b.is_alive()]
+        for b in self.balloons:
+            b.update()
+            b.draw(frame)
 
 
 class PortalProcessor:
@@ -992,6 +1072,28 @@ class PortalProcessor:
         self.smoother = HandSmoother(alpha=0.45, ghost_frames=12)
         self._frame_count = 0
         self._detect_every = 2  # ponytail: skip-frame detection, smoother fills gaps
+
+        # V-Sign Love Blur 40% & Floating Balloon Engine
+        self.love_engine = LoveBalloonEngine()
+        self.v_blur_timer = 0.0
+        self.v_blur_duration = 3.5
+        self.v_blur_dir = "foto kita blurr"
+        self.last_v_snap_time = 0.0
+        os.makedirs(self.v_blur_dir, exist_ok=True)
+
+    def trigger_v_love_blur(self) -> None:
+        now = time.time()
+        self.v_blur_timer = now + self.v_blur_duration
+
+    def capture_v_blur_screenshot(self, frame: np.ndarray) -> str:
+        os.makedirs(self.v_blur_dir, exist_ok=True)
+        filename = os.path.join(self.v_blur_dir, f"foto_kita_blurr_{int(time.time() * 1000)}.png")
+        cv2.imwrite(filename, frame)
+        abs_path = os.path.abspath(filename)
+        print(f"[INFO] Foto Love Blur 40% disimpan ke: {abs_path}")
+        self.toast_mgr.add("Disimpan ke 'foto kita blurr'! ✌️❤️", "V", 3.0)
+        self.shutter_flash_frames = 4
+        return filename
 
     @property
     def current_filter_name(self) -> str:
@@ -1165,6 +1267,7 @@ class PortalProcessor:
         for fname, tip_idx in finger_order:
             if GeometryUtils.is_finger_extended(hand_pts, fname):
                 extended_tips.append(hand_pts[tip_idx])
+        count = max(1, min(5, self.cfg.active_fingers))
         return extended_tips[:count]
 
     def process_frame(self, frame: np.ndarray) -> np.ndarray:
@@ -1218,10 +1321,12 @@ class PortalProcessor:
                     if GeometryUtils.is_fist_closed_pts(hand_pts, self.cfg.fist_dist_threshold_px):
                         fist_count += 1
 
-                    if self.cfg.enable_gesture_snap and GeometryUtils.is_peace_sign_pts(hand_pts):
-                        if now - self.last_gesture_time > self.cfg.gesture_cooldown_sec:
-                            self.capture_screenshot(frame)
-                            self.last_gesture_time = now
+                    # V-Sign Gesture (✌️): Triggers 40% Blur + Love Balloon Explosion & saves to 'foto kita blurr'
+                    if GeometryUtils.is_peace_sign_pts(hand_pts):
+                        self.trigger_v_love_blur()
+                        if now - self.last_v_snap_time > 2.5:
+                            self.capture_v_blur_screenshot(frame)
+                            self.last_v_snap_time = now
 
             if fist_count == 2 and (now - self.last_mode_toggle > self.cfg.mode_cooldown_sec):
                 self.toggle_mode()
@@ -1232,6 +1337,18 @@ class PortalProcessor:
                 t1, t2 = all_hand_tips[0], all_hand_tips[1]
                 if t1 and t2:
                     frame = self.render_portal(frame, t1 + t2, self.current_filter_name)
+
+        # Apply V-Sign 40% Blur + Floating Love Balloons
+        if now < self.v_blur_timer:
+            blurred = cv2.GaussianBlur(frame, (29, 29), 0)
+            frame = cv2.addWeighted(frame, 0.60, blurred, 0.40, 0)
+            self.love_engine.spawn(fw, fh, count=3)
+            self.love_engine.update_and_draw(frame)
+
+            # Draw romantic HUD badge
+            cv2.rectangle(frame, (fw // 2 - 170, 10), (fw // 2 + 170, 42), (40, 20, 60), -1)
+            cv2.rectangle(frame, (fw // 2 - 170, 10), (fw // 2 + 170, 42), (220, 100, 255), 1)
+            cv2.putText(frame, "LOVE BLUR 40% (foto kita blurr)", (fw // 2 - 155, 32), cv2.FONT_HERSHEY_SIMPLEX, 0.48, (255, 180, 255), 1, cv2.LINE_AA)
 
         if self.pinch_anim_frames > 0 and self.pinch_anim_point is not None:
             r = (7 - self.pinch_anim_frames) * 6

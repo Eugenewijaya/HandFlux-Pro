@@ -602,6 +602,100 @@ class ShadowCloneEffect:
         return combined
 
 
+class LoveBalloon:
+    def __init__(self, w: int, h: int) -> None:
+        self.x = float(random.randint(20, max(20, w - 20)))
+        self.y = float(h + random.randint(10, 60))
+        self.size = float(random.randint(18, 38))
+        self.speed_y = float(random.uniform(2.5, 5.2))
+        self.wobble_freq = float(random.uniform(2.0, 5.0))
+        self.wobble_amp = float(random.uniform(1.2, 3.5))
+        self.start_t = time.time()
+        self.color = random.choice([
+            (180, 105, 255),  # Soft Pink (BGR)
+            (80, 40, 240),    # Romantic Crimson
+            (220, 60, 255),   # Vibrant Magenta
+            (100, 50, 255),   # Deep Rose
+            (240, 240, 255),  # Pure White
+            (80, 215, 255),   # Warm Peach
+        ])
+        self.alpha = float(random.uniform(0.78, 0.95))
+
+    def update(self) -> None:
+        self.y -= self.speed_y
+        elapsed = time.time() - self.start_t
+        self.x += math.sin(elapsed * self.wobble_freq) * self.wobble_amp
+
+    def is_alive(self) -> bool:
+        return self.y > -80
+
+    def draw(self, frame: np.ndarray) -> None:
+        if not self.is_alive():
+            return
+        h, w = frame.shape[:2]
+        cx, cy = int(self.x), int(self.y)
+        sz = self.size
+
+        if cx < -50 or cx > w + 50 or cy < -50 or cy > h + 80:
+            return
+
+        top_alpha = min(1.0, max(0.0, (cy + 20) / 120.0)) * self.alpha
+
+        pts = []
+        num_pts = 30
+        for i in range(num_pts):
+            t = (2 * math.pi / num_pts) * i
+            hx = 16 * (math.sin(t) ** 3)
+            hy = -(13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t))
+            px = int(cx + hx * (sz / 16.0))
+            py = int(cy + hy * (sz / 16.0))
+            pts.append((px, py))
+
+        pts_np = np.array(pts, dtype=np.int32)
+        ov = frame.copy()
+        cv2.fillPoly(ov, [pts_np], self.color)
+        cv2.polylines(ov, [pts_np], True, (255, 255, 255), 1, cv2.LINE_AA)
+
+        hx_shine = int(cx - sz * 0.25)
+        hy_shine = int(cy - sz * 0.35)
+        cv2.circle(ov, (hx_shine, hy_shine), max(2, int(sz * 0.14)), (255, 255, 255), -1)
+
+        s_pts = []
+        for s in range(10):
+            sx = int(cx + math.sin(s * 0.6) * 3)
+            sy = int(cy + sz * 0.8 + s * 3.5)
+            s_pts.append((sx, sy))
+        cv2.polylines(ov, [np.array(s_pts, dtype=np.int32)], False, (220, 220, 220), 1, cv2.LINE_AA)
+
+        cv2.addWeighted(ov, top_alpha, frame, 1.0 - top_alpha, 0, frame)
+
+
+class LoveBalloonEngine:
+    def __init__(self) -> None:
+        self.balloons: List[LoveBalloon] = []
+
+    def spawn(self, w: int, h: int, count: int = 3) -> None:
+        for _ in range(count):
+            self.balloons.append(LoveBalloon(w, h))
+
+    def update_and_draw(self, frame: np.ndarray) -> None:
+        self.balloons = [b for b in self.balloons if b.is_alive()]
+        for b in self.balloons:
+            b.update()
+            b.draw(frame)
+
+
+def is_v_sign(pts: List[Tuple[int, int]]) -> bool:
+    if not pts or len(pts) < 21:
+        return False
+    wrist = np.array(pts[0])
+    d_index = np.linalg.norm(np.array(pts[8]) - wrist)
+    d_middle = np.linalg.norm(np.array(pts[12]) - wrist)
+    d_ring = np.linalg.norm(np.array(pts[16]) - wrist)
+    d_pinky = np.linalg.norm(np.array(pts[20]) - wrist)
+    return (d_index > d_ring * 1.2) and (d_middle > d_pinky * 1.2) and (d_ring < d_index * 0.75)
+
+
 def main() -> None:
     w, h = 960, 540
     engine = HandDetectorEngine(w, h, detect_scale=0.5)
@@ -612,6 +706,13 @@ def main() -> None:
     chidori = ChidoriEffect()
     fireball = FireballEffect()
     shadow_clone = ShadowCloneEffect()
+
+    love_engine = LoveBalloonEngine()
+    v_blur_timer = 0.0
+    v_blur_duration = 3.5
+    v_blur_dir = "foto kita blurr"
+    last_v_snap_time = 0.0
+    os.makedirs(v_blur_dir, exist_ok=True)
 
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW if sys.platform.startswith("win") else cv2.CAP_ANY)
     if not cap.isOpened():
@@ -630,6 +731,7 @@ def main() -> None:
     print("  🔥 Tekan '2' / 'K'                           -> FIRE STYLE (KATON)")
     print("  ⚡ Tekan '3' / 'L'                           -> CHIDORI")
     print("  👥 Tekan '4' / 'B'                           -> SHADOW CLONE")
+    print("  ✌️  Gesture 'V'                              -> LOVE BLUR 40% + BALLOONS")
     print("  ❌ Tekan 'Q' atau ESC                       -> Keluar\n")
 
     frame_count = 0
@@ -642,6 +744,7 @@ def main() -> None:
                 break
 
             frame = cv2.flip(frame, 1)
+            now = time.time()
 
             frame_count += 1
             if frame_count % 2 == 0:
@@ -667,6 +770,14 @@ def main() -> None:
                     for pt in hand_pts:
                         cv2.circle(frame, pt, 4, (0, 240, 255), -1)
 
+                    if is_v_sign(hand_pts):
+                        v_blur_timer = now + v_blur_duration
+                        if now - last_v_snap_time > 2.5:
+                            fn = os.path.join(v_blur_dir, f"foto_kita_blurr_{int(time.time() * 1000)}.png")
+                            cv2.imwrite(fn, frame)
+                            print(f"[INFO] Foto Love Blur disimpan ke: {os.path.abspath(fn)}")
+                            last_v_snap_time = now
+
             if rasengan.active:
                 rasengan.update_and_draw(frame, *hand_pos)
             if chidori.active:
@@ -676,9 +787,20 @@ def main() -> None:
             blast.update_and_draw(frame)
             frame = shadow_clone.apply(frame)
 
+            # Apply V-Sign 40% Blur + Floating Love Balloons
+            if now < v_blur_timer:
+                blurred = cv2.GaussianBlur(frame, (29, 29), 0)
+                frame = cv2.addWeighted(frame, 0.60, blurred, 0.40, 0)
+                love_engine.spawn(w, h, count=3)
+                love_engine.update_and_draw(frame)
+
+                cv2.rectangle(frame, (w // 2 - 170, 10), (w // 2 + 170, 42), (40, 20, 60), -1)
+                cv2.rectangle(frame, (w // 2 - 170, 10), (w // 2 + 170, 42), (220, 100, 255), 1)
+                cv2.putText(frame, "LOVE BLUR 40% (foto kita blurr)", (w // 2 - 155, 32), cv2.FONT_HERSHEY_SIMPLEX, 0.48, (255, 180, 255), 1, cv2.LINE_AA)
+
             # Draw HUD legend
             cv2.putText(frame, "NARUTO NINJUTSU ENGINE", (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 240, 255), 2)
-            cv2.putText(frame, "[CLAP/1] Rasengan  [2] Katon Fire  [3] Chidori  [4] Clone  [Q] Quit", (15, h - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (200, 200, 200), 1)
+            cv2.putText(frame, "[CLAP/1] Rasengan  [2] Katon Fire  [3] Chidori  [4] Clone  [V-Sign] Love Blur  [Q] Quit", (15, h - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (200, 200, 200), 1)
 
             cv2.imshow("Naruto Ninjutsu Camera", frame)
             key = cv2.waitKey(1) & 0xFF
