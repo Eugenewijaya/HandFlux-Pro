@@ -1031,7 +1031,8 @@ class PortalProcessor:
 
         if self.auto_cycle_active:
             if now - self.last_auto_cycle_time > self.cfg.auto_cycle_interval:
-                self.cycle_filter(1)
+                self.active_filter_idx = random.randint(0, len(self.filter_keys) - 1)
+                self.toast_mgr.add(f"Filter: {self.current_filter_name.upper()}", "*", 1.8)
                 self.last_auto_cycle_time = now
 
         # ponytail: detect every Nth frame, let velocity-predicting smoother
