@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🖐️⚡ HANDFLUX PRO
-### *Next-Gen 120 FPS Real-Time Hand-Gesture Visual Portal Engine*
+### *Interactive Real-Time Hand-Gesture Visual Portal Engine*
 
 <p align="center">
   <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZtYnhuZmpubWxkcTNpaTR5ZnptZnJndmtwNDdxcWRlMGdncXZmdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/13l74g92vuYuUU/giphy.gif" alt="HandFlux Pro Anime Gesture" width="480"/>
@@ -10,7 +10,6 @@
 [![Python](https://img.shields.io/badge/Python-3.8%20%7C%203.14%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.13.0-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white)](https://opencv.org)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Tasks%20v0.10%2B-00979D?style=for-the-badge&logo=google&logoColor=white)](https://mediapipe.dev)
-[![Performance](https://img.shields.io/badge/Performance-120%20FPS%20Uncapped-FF2D55?style=for-the-badge&logo=lightning&logoColor=white)](#-kenapa-handflux-pro-jauh-lebih-keren)
 [![License](https://img.shields.io/badge/License-MIT-F7B500?style=for-the-badge)](LICENSE)
 
 ---
@@ -25,22 +24,25 @@
 ## 🇮🇩 Bahasa Indonesia
 
 ### 📖 Tentang HandFlux Pro
-**HandFlux Pro** adalah aplikasi *Computer Vision* generasi terbaru yang mengubah gerakan tangan Anda menjadi portal efek visual berkecepatan **120 FPS**. Cukup gerakkan atau bentangkan jari tangan Anda di depan webcam untuk memproyeksikan portal efek futuristik (*Cyberpunk, VHS, Matrix, Pop-Art, Rainbow Wave, Cartoon*, dan 10+ efek visual spektakuler lainnya).
+**HandFlux Pro** adalah aplikasi *Computer Vision* interaktif yang mengubah gerakan tangan Anda menjadi portal efek visual real-time. Cukup bentangkan atau gerakkan jari tangan Anda di depan webcam untuk memproyeksikan portal efek futuristik (*Cyberpunk, VHS, Matrix, Pop-Art, Rainbow Wave, Cartoon*, dan 10+ efek visual spektakuler lainnya).
+
+Aplikasi ini dilengkapi dengan pengenalan bentuk portal otomatis (1 hingga 5 jari), deteksi jari tegak yang presisi, serta penyaringan gerakan cubit (*pinch*) untuk mengganti filter visual secara alami.
 
 ---
 
 ### 🔥 Kenapa HandFlux Pro Jauh Lebih Keren?
 
-| Keunggulan Teknologi | Kenapa Ini Lebih Keren? 🚀 |
+| Fitur & Keunggulan | Kenapa Ini Lebih Keren? 🚀 |
 | --- | --- |
-| **⚡ 120 FPS Uncapped Throughput** | Tanpa pembatasan framerate buatan! Video mengalir super mulus tanpa *lag* atau patah-patah. |
+| **🖐️ Smart Standing Finger Filter** | Hanya mendeteksi dan menggunakan jari yang **berdiri tegak**. Jari yang dilipat ke telapak tangan otomatis diabaikan, membuat pembuatan portal jauh lebih presisi. |
 | **📐 CCW Polar Angle Sorting** | Poligon portal diurutkan berlawanan arah jarum jam secara matematis. **Portal 100% TIDAK AKAN KELIPET ATAU MENYILANG** meski tangan diputar! |
-| **🖐️ Smart Standing Finger Filter** | Hanya mendeteksi jari yang **berdiri tegak**. Jari yang dilipat ke telapak tangan otomatis diabaikan, membuat pembuatan portal jauh lebih presisi. |
+| **🎨 16 Filter Visual Premium** | Cyberpunk, VHS, Matrix, Pop-Art, Rainbow Wave, Cartoon, Thermal, Sketch, Glitch, Dual-Tone, Pixelate, Sepia, dan banyak lagi. |
 | **✨ EMA Landmark Smoothing** | Diterapkan *Exponential Moving Average (alpha=0.5)* untuk menyaring getaran piksel (*jitter*). Rangka jari dan garis portal terasa tenang dan solid. |
 | **🎯 Distance-Invariant Pinch Ratio** | Gestur cubit (*pinch*) dihitung relatif terhadap ukuran tangan. Respon konsisten baik saat tangan 30 cm maupun 2 meter dari webcam. |
 | **🖥️ Glassmorphic HUD & Toasts** | Tampilan antarmuka transparan futuristik dilengkapi sistem notifikasi mengambang (*floating toast system*). |
 | **🖱️ One-Click Desktop Launcher** | Dilengkapi file batch & shortcut instan di Desktop. Tinggal *double click* tanpa perlu buka terminal! |
 | **📹 Perekam MP4 & Screenshot** | Dukungan perekaman video MP4 real-time (`R`) dan jepret foto manual (`S`). |
+| **⚡ High Frame-Rate Throughput** | Didukung optimasi buffer kamera real-time yang mampu membuka performa hingga 120 FPS tanpa batas buatan. |
 
 ---
 
@@ -94,18 +96,20 @@
 ## 🇬🇧 English
 
 ### 📖 About HandFlux Pro
-**HandFlux Pro** is a next-generation real-time Computer Vision application powered by Python, OpenCV, and MediaPipe Tasks API. It dynamically maps hand gestures into interactive visual filter portals running at up to **120 FPS**.
+**HandFlux Pro** is an interactive Computer Vision application powered by Python, OpenCV, and MediaPipe Tasks API. It dynamically transforms your hand gestures into interactive visual filter portals in real-time.
+
+Simply move your hands in front of the webcam to project futuristic visual effects (*Cyberpunk, VHS, Matrix, Pop-Art, Rainbow Wave, Cartoon*, and 10+ more).
 
 ---
 
 ### 🔥 Why HandFlux Pro Rocks?
 
-- **⚡ 120 FPS Uncapped Performance**: High-throughput rendering pipeline with zero frame artificial caps.
-- **📐 Non-Crossing CCW Polygon Geometry**: Vertices are sorted counter-clockwise around the centroid, mathematically preventing self-intersecting or folded shapes.
 - **🖐️ Smart Standing Finger Detection**: Detects and uses ONLY extended (standing) fingers. Folded fingers are automatically excluded.
+- **📐 Non-Crossing CCW Polygon Geometry**: Vertices are sorted counter-clockwise around the centroid, mathematically preventing self-intersecting or folded shapes.
+- **🎨 16 Premium Visual Filters**: Cyberpunk, VHS, Matrix, Pop-Art, Rainbow Wave, Cartoon, Thermal, Sketch, Glitch, Dual-Tone, Pixelate, Sepia, and more.
 - **✨ EMA Landmark Smoothing**: Uses Exponential Moving Average filtering to eliminate pixel jitter.
 - **🎯 Distance-Invariant Pinch Recognition**: Dynamic scale-invariant pinch detection that works consistently at any distance.
-- **🎨 16 Premium Visual Filters**: Cyberpunk, VHS, Matrix, Pop-Art, Rainbow Wave, Cartoon, Thermal, Sketch, Glitch, Dual-Tone, Pixelate, Sepia, and more.
+- **⚡ Uncapped Frame-Rate Performance**: High-throughput rendering pipeline supporting up to 120 FPS.
 
 ---
 
@@ -132,17 +136,19 @@
 ## 🇨🇳 中文 (Chinese)
 
 ### 📖 关于 HandFlux Pro
-**HandFlux Pro** 是一款基于 Python、OpenCV 和 MediaPipe Tasks API 开发的下一代实时计算机视觉应用。它能将您的手势动态转换为高达 **120 FPS** 的炫酷视觉滤镜传送门。
+**HandFlux Pro** 是一款基于 Python、OpenCV 和 MediaPipe Tasks API 开发的互动式计算机视觉应用。它能将您的手势实时转换为动态视觉滤镜传送门。
+
+只需要在摄像头前展示手势，即可投射赛博朋克 (Cyberpunk)、VHS 录像带、黑客帝国 (Matrix)、波普艺术 (Pop-Art)、彩虹波浪 (Rainbow Wave) 等 16 种炫酷特效。
 
 ---
 
 ### 🔥 为什么 HandFlux Pro 更强大？
 
-- **⚡ 120 FPS 无锁帧**: 高性能渲染管道，拒绝卡顿。
-- **📐 CCW 极角排序防折叠几何**: 采用逆时针极角排序算法，从数学上保证传送门多边形**绝不交叉或折叠**。
 - **🖐️ 智能立手指过滤**: 仅识别并使用**直立伸展的手指**，弯曲收起的手指会自动被忽略。
+- **📐 CCW 极角排序防折叠几何**: 采用逆时针极角排序算法，从数学上保证传送门多边形**绝不交叉或折叠**。
+- **🎨 16 种炫酷视觉特效**: 包含赛博朋克、VHS、黑客帝国、波普艺术、彩虹波浪等 16 种丰富特效。
 - **✨ EMA 手势降噪平滑**: 引入指数移动平均 (EMA) 算法，彻底消除骨骼及线条抖动。
-- **🎨 16 种炫酷视觉特效**: 包含赛博朋克 (Cyberpunk)、VHS 录像带、黑客帝国 (Matrix)、波普艺术 (Pop-Art)、彩虹波浪 (Rainbow Wave)、卡通等 16 种滤镜。
+- **⚡ 高帧率性能支持**: 支持无锁帧高吞吐量渲染，最高可达 120 FPS。
 
 ---
 
