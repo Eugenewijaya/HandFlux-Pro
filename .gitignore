@@ -17,6 +17,8 @@ hand_landmarker.task
 # Captures & Output
 captures/
 test_captures/
+foto kita blurr/
+fotokitablur/
 cap_*.png
 rec_*.mp4
 portal_screenshot_*.png
