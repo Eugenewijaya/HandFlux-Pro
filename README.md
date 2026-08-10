@@ -24,9 +24,18 @@
 ## 🇮🇩 Bahasa Indonesia
 
 ### 📖 Tentang HandFlux Pro
-**HandFlux Pro** adalah aplikasi *Computer Vision* interaktif yang mengubah gerakan tangan Anda menjadi portal efek visual real-time. Cukup bentangkan atau gerakkan jari tangan Anda di depan webcam untuk memproyeksikan portal efek futuristik (*Cyberpunk, VHS, Matrix, Pop-Art, Rainbow Wave, Cartoon*, dan 10+ efek visual spektakuler lainnya).
+**HandFlux Pro** adalah aplikasi *Computer Vision* interaktif yang mengubah gerakan tangan Anda menjadi portal efek visual real-time. Cukup bentangkan dua tangan di depan webcam untuk memproyeksikan portal efek futuristik dari **25+ filter visual premium** yang dikategorikan ke dalam 4 tema utama (*Cinematic, Anime, Cyberpunk, Artistic*).
 
-Aplikasi ini dilengkapi dengan pengenalan bentuk portal otomatis (1 hingga 5 jari), deteksi jari tegak yang presisi, serta penyaringan gerakan cubit (*pinch*) untuk mengganti filter visual secara alami.
+Aplikasi ini dilengkapi dengan mode **Auto-Cycle 2 Detik** (otomatis berganti filter tanpa perlu gesture cubit), pemilihan tema filter dinamis, deteksi jari berdiri yang presisi, serta pengurutan poligon anti-kelipet.
+
+---
+
+### 🎨 25 Filter Visual Berdasarkan Tema
+
+1. **🎬 Tema CINEMATIC & FILM**: `Teal-Orange`, `Kodachrome`, `Technicolor`, `Noir-Film`, `Cinematic-Warm`, `Vignette-Cinema`, `Sepia`.
+2. **⛩️ Tema ANIME & CARTOON**: `Anime-Cel`, `Manga-Ink`, `Cartoon-Classic`, `Pop-Art`, `Pencil-Sketch`, `Posterize`.
+3. **⚡ Tema CYBER & SCI-FI**: `Cyberpunk`, `Matrix`, `Thermal`, `Night-Vision`, `Hologram`, `Glitch-RGB`.
+4. **🎨 Tema ARTISTIC & EFX**: `Oil-Paint`, `Rainbow-Wave`, `Edge-Neon`, `Pixelate`, `VHS-Tape`, `Solarize`.
 
 ---
 
@@ -34,15 +43,15 @@ Aplikasi ini dilengkapi dengan pengenalan bentuk portal otomatis (1 hingga 5 jar
 
 | Fitur & Keunggulan | Kenapa Ini Lebih Keren? 🚀 |
 | --- | --- |
-| **🖐️ Smart Standing Finger Filter** | Hanya mendeteksi dan menggunakan jari yang **berdiri tegak**. Jari yang dilipat ke telapak tangan otomatis diabaikan, membuat pembuatan portal jauh lebih presisi. |
-| **📐 CCW Polar Angle Sorting** | Poligon portal diurutkan berlawanan arah jarum jam secara matematis. **Portal 100% TIDAK AKAN KELIPET ATAU MENYILANG** meski tangan diputar! |
-| **🎨 16 Filter Visual Premium** | Cyberpunk, VHS, Matrix, Pop-Art, Rainbow Wave, Cartoon, Thermal, Sketch, Glitch, Dual-Tone, Pixelate, Sepia, dan banyak lagi. |
-| **✨ EMA Landmark Smoothing** | Diterapkan *Exponential Moving Average (alpha=0.5)* untuk menyaring getaran piksel (*jitter*). Rangka jari dan garis portal terasa tenang dan solid. |
-| **🎯 Distance-Invariant Pinch Ratio** | Gestur cubit (*pinch*) dihitung relatif terhadap ukuran tangan. Respon konsisten baik saat tangan 30 cm maupun 2 meter dari webcam. |
+| **🔄 Auto-Cycle Mode 2 Detik (`A`)** | Filter otomatis berganti setiap 2 detik secara otomatis tanpa perlu melakukan gestur cubit! |
+| **🏷️ Theme Category Switcher (`T`)** | Pilih kategori tema khusus (Cinematic, Anime, Cyber, Artistic) atau jalankan seluruh filter secara acak. |
+| **🖐️ Smart Standing Finger Filter** | Hanya mendeteksi dan menggunakan jari yang **berdiri tegak**. Jari yang dilipat ke telapak tangan otomatis diabaikan! |
+| **📐 CCW Polar Angle Sorting** | Poligon portal diurutkan berlawanan arah jarum jam secara matematis. **Portal 100% TIDAK AKAN KELIPET ATAU MENYILANG**! |
+| **🎨 25 Filter Visual Premium** | Koleksi 25 filter spektakuler dari gaya film sinematik, anime cel shading, cyberpunk neon, hingga efek lukisan minyak. |
+| **✨ EMA Landmark Smoothing** | Diterapkan *Exponential Moving Average (alpha=0.5)* untuk menyaring getaran piksel (*jitter*). |
 | **🖥️ Glassmorphic HUD & Toasts** | Tampilan antarmuka transparan futuristik dilengkapi sistem notifikasi mengambang (*floating toast system*). |
-| **🖱️ One-Click Desktop Launcher** | Dilengkapi file batch & shortcut instan di Desktop. Tinggal *double click* tanpa perlu buka terminal! |
-| **📹 Perekam MP4 & Screenshot** | Dukungan perekaman video MP4 real-time (`R`) dan jepret foto manual (`S`). |
-| **⚡ High Frame-Rate Throughput** | Didukung optimasi buffer kamera real-time yang mampu membuka performa hingga 120 FPS tanpa batas buatan. |
+| **🖱️ One-Click Desktop Launcher** | Dilengkapi file batch & shortcut instan di Desktop Windows. |
+| **⚡ High Frame-Rate Throughput** | Didukung optimasi buffer kamera real-time yang mampu membuka performa hingga 120 FPS. |
 
 ---
 
@@ -51,9 +60,10 @@ Aplikasi ini dilengkapi dengan pengenalan bentuk portal otomatis (1 hingga 5 jar
 | Tombol / Gesture | Aksi & Fungsi |
 | --- | --- |
 | 🖱️ **Double Click Shortcut** | Jalankan aplikasi langsung dari Desktop Windows |
-| 🤏 **Pinch (Jempol + Telunjuk)** | Mengganti filter visual secara real-time |
+| 🔄 **Tombol `A`** | **Toggle Auto-Cycle Mode** (Filter otomatis berganti tiap 2 detik) |
+| 🏷️ **Tombol `T`** | **Ganti Tema Filter** (`ALL` ➔ `CINEMATIC` ➔ `ANIME` ➔ `CYBER` ➔ `ARTISTIC`) |
+| 🤏 **Pinch (Jempol + Telunjuk)** | Mengganti filter visual secara manual |
 | 🔢 **Tombol `1` - `5`** | Mengatur jumlah jari aktif (1=Lingkaran, 2=Kapsul, 3=Segitiga, 4=Quad, 5=Poligon 5 Sudut) |
-| 🔄 **Tombol `F`** | Berpindah jumlah jari aktif secara berurutan (`1` ➔ `5`) |
 | 📸 **Tombol `S`** | Mengambil screenshot manual (tersimpan di `captures/`) |
 | ✌️ **Tombol `G`** | Toggle auto-screenshot gesture Peace Sign (`Off` secara default) |
 | 🎥 **Tombol `R`** | Memulai / menghentikan perekaman video MP4 |
@@ -82,7 +92,10 @@ Aplikasi ini dilengkapi dengan pengenalan bentuk portal otomatis (1 hingga 5 jar
    ```bash
    python Retrolens.py
    ```
-   *Atau jalankan via file shortcut di Desktop Anda!*
+   *Atau dengan Auto-Cycle langsung aktif:*
+   ```bash
+   python Retrolens.py --auto-cycle
+   ```
 
 4. **Uji Coba Automated Test:**
    ```bash
@@ -98,18 +111,16 @@ Aplikasi ini dilengkapi dengan pengenalan bentuk portal otomatis (1 hingga 5 jar
 ### 📖 About HandFlux Pro
 **HandFlux Pro** is an interactive Computer Vision application powered by Python, OpenCV, and MediaPipe Tasks API. It dynamically transforms your hand gestures into interactive visual filter portals in real-time.
 
-Simply move your hands in front of the webcam to project futuristic visual effects (*Cyberpunk, VHS, Matrix, Pop-Art, Rainbow Wave, Cartoon*, and 10+ more).
+Featuring **25 premium visual filters** categorized into 4 themes (*Cinematic, Anime, Cyberpunk, Artistic*) and an **Auto-Cycle 2s Mode** that automatically rotates filters every 2 seconds without requiring gestures.
 
 ---
 
-### 🔥 Why HandFlux Pro Rocks?
+### 🎨 25 Themed Visual Filters
 
-- **🖐️ Smart Standing Finger Detection**: Detects and uses ONLY extended (standing) fingers. Folded fingers are automatically excluded.
-- **📐 Non-Crossing CCW Polygon Geometry**: Vertices are sorted counter-clockwise around the centroid, mathematically preventing self-intersecting or folded shapes.
-- **🎨 16 Premium Visual Filters**: Cyberpunk, VHS, Matrix, Pop-Art, Rainbow Wave, Cartoon, Thermal, Sketch, Glitch, Dual-Tone, Pixelate, Sepia, and more.
-- **✨ EMA Landmark Smoothing**: Uses Exponential Moving Average filtering to eliminate pixel jitter.
-- **🎯 Distance-Invariant Pinch Recognition**: Dynamic scale-invariant pinch detection that works consistently at any distance.
-- **⚡ Uncapped Frame-Rate Performance**: High-throughput rendering pipeline supporting up to 120 FPS.
+- **🎬 CINEMATIC**: `Teal-Orange`, `Kodachrome`, `Technicolor`, `Noir-Film`, `Cinematic-Warm`, `Vignette-Cinema`, `Sepia`.
+- **⛩️ ANIME & CARTOON**: `Anime-Cel`, `Manga-Ink`, `Cartoon-Classic`, `Pop-Art`, `Pencil-Sketch`, `Posterize`.
+- **⚡ CYBER & SCI-FI**: `Cyberpunk`, `Matrix`, `Thermal`, `Night-Vision`, `Hologram`, `Glitch-RGB`.
+- **🎨 ARTISTIC & EFX**: `Oil-Paint`, `Rainbow-Wave`, `Edge-Neon`, `Pixelate`, `VHS-Tape`, `Solarize`.
 
 ---
 
@@ -117,16 +128,12 @@ Simply move your hands in front of the webcam to project futuristic visual effec
 
 | Key / Gesture | Function |
 | --- | --- |
-| 🤏 **Pinch (Thumb + Index)** | Cycle visual filters in real-time |
+| 🔄 **Key `A`** | **Toggle Auto-Cycle 2s Mode** (Auto switch filter every 2 seconds) |
+| 🏷️ **Key `T`** | **Switch Filter Theme** (`ALL` ➔ `CINEMATIC` ➔ `ANIME` ➔ `CYBER` ➔ `ARTISTIC`) |
+| 🤏 **Pinch (Thumb + Index)** | Manually cycle visual filters |
 | 🔢 **Keys `1` to `5`** | Set active finger count (1=Circle, 2=Pill, 3=Triangle, 4=Quad, 5=Polygon) |
-| 🔄 **Key `F`** | Cycle active finger count |
 | 📸 **Key `S`** | Take manual screenshot (saved to `captures/`) |
-| ✌️ **Key `G`** | Toggle Peace Sign gesture screenshot (`Off` by default) |
 | 🎥 **Key `R`** | Start / stop MP4 video recording |
-| ◀️▶️ **Keys `N` / `P`** | Next / previous filter |
-| 🧊 **Key `C`** | Toggle 2D Quad vs 3D Mesh portal mode |
-| 🪞 **Key `M`** | Toggle mirror mode |
-| 👁️ **Key `H`** | Toggle HUD overlay |
 | 🚪 **Key `Q` / `Esc`** | Quit application |
 
 ---
@@ -136,34 +143,16 @@ Simply move your hands in front of the webcam to project futuristic visual effec
 ## 🇨🇳 中文 (Chinese)
 
 ### 📖 关于 HandFlux Pro
-**HandFlux Pro** 是一款基于 Python、OpenCV 和 MediaPipe Tasks API 开发的互动式计算机视觉应用。它能将您的手势实时转换为动态视觉滤镜传送门。
-
-只需要在摄像头前展示手势，即可投射赛博朋克 (Cyberpunk)、VHS 录像带、黑客帝国 (Matrix)、波普艺术 (Pop-Art)、彩虹波浪 (Rainbow Wave) 等 16 种炫酷特效。
+**HandFlux Pro** 是一款基于 Python、OpenCV 和 MediaPipe Tasks API 开发的互动式计算机视觉应用。它包含 **25 种主题滤镜**（电影感、动漫风、赛博朋克、艺术涂鸦）以及 **2 秒自动循环模式**。
 
 ---
 
-### 🔥 为什么 HandFlux Pro 更强大？
+### 🎨 25 种主题滤镜
 
-- **🖐️ 智能立手指过滤**: 仅识别并使用**直立伸展的手指**，弯曲收起的手指会自动被忽略。
-- **📐 CCW 极角排序防折叠几何**: 采用逆时针极角排序算法，从数学上保证传送门多边形**绝不交叉或折叠**。
-- **🎨 16 种炫酷视觉特效**: 包含赛博朋克、VHS、黑客帝国、波普艺术、彩虹波浪等 16 种丰富特效。
-- **✨ EMA 手势降噪平滑**: 引入指数移动平均 (EMA) 算法，彻底消除骨骼及线条抖动。
-- **⚡ 高帧率性能支持**: 支持无锁帧高吞吐量渲染，最高可达 120 FPS。
-
----
-
-### 🎮 快捷键与手势指南
-
-| 按键 / 手势 | 功能描述 |
-| --- | --- |
-| 🤏 **捏合 (拇指 + 食指)** | 实时切换视觉滤镜 |
-| 🔢 **按键 `1` - `5`** | 设置有效手指数量 (1=圆形, 2=胶囊形, 3=三角形, 4=四边形, 5=多边形) |
-| 🔄 **按键 `F`** | 循环切换有效手指数量 |
-| 📸 **按键 `S`** | 手动截图 (保存至 `captures/`) |
-| 🎥 **按键 `R`** | 开始 / 停止 MP4 视频录制 |
-| ◀️▶️ **按键 `N` / `P`** | 切换上一个 / 下一个滤镜 |
-| 🧊 **按键 `C`** | 切换 2D 四边形 / 3D 网格传送门模式 |
-| 🚪 **按键 `Q` / `Esc`** | 退出程序 |
+- **🎬 电影感 (CINEMATIC)**: 好莱坞橙青 (Teal-Orange)、柯达胶卷 (Kodachrome)、彩色印相 (Technicolor)、黑白电影 (Noir-Film)、暖阳 (Warm)、暗角 (Vignette)、复古褐色 (Sepia)。
+- **⛩️ 动漫与卡通 (ANIME)**: 动漫赛璐珞 (Anime-Cel)、日漫水墨 (Manga-Ink)、经典卡通 (Cartoon)、波普艺术 (Pop-Art)、铅笔素描 (Pencil-Sketch)、海报化 (Posterize)。
+- **⚡ 赛博与科影 (CYBER)**: 赛博朋克 (Cyberpunk)、黑客帝国 (Matrix)、红外热成像 (Thermal)、夜视仪 (Night-Vision)、全息投影 (Hologram)、RGB 故障 (Glitch-RGB)。
+- **🎨 艺术与特效 (ARTISTIC)**: 油画 (Oil-Paint)、彩虹波浪 (Rainbow-Wave)、霓虹边缘 (Edge-Neon)、像素化 (Pixelate)、VHS 录像带 (VHS-Tape)、曝光过度 (Solarize)。
 
 ---
 

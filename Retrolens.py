@@ -1,5 +1,5 @@
 """
-RetroLens Pro - Real-time Hand Gesture Filter & Portal Engine
+HandFlux Pro - Real-time Hand Gesture Filter & Portal Engine
 """
 
 import argparse
@@ -81,12 +81,11 @@ class HandDetectorEngine:
     def __init__(self, frame_width: int, frame_height: int) -> None:
         self.w = frame_width
         self.h = frame_height
-        self.mode = "none"  # "tasks", "solutions", or "fallback"
+        self.mode = "none"
         self.tasks_detector = None
         self.solutions_detector = None
         self.mp_module = None
 
-        # 1. Try MediaPipe Tasks API (MediaPipe 0.10.30+)
         try:
             if ensure_model_exists() and os.path.exists(MODEL_PATH):
                 import mediapipe as mp
@@ -107,7 +106,6 @@ class HandDetectorEngine:
         except Exception as e:
             print(f"[DEBUG] MediaPipe Tasks init failed: {e}")
 
-        # 2. Try MediaPipe Solutions API (Legacy MediaPipe)
         if self.mode == "none":
             try:
                 import mediapipe as mp
@@ -179,41 +177,143 @@ class PipelineConfig:
     frame_width: int = 960
     frame_height: int = 540
     target_fps: int = 120
-    active_fingers: int = 5  # 1 to 5 fingers used for portal shape
-    enable_gesture_snap: bool = False  # Disabled by default; press G to toggle
-    pinch_threshold_ratio: float = 0.28  # Distance-invariant normalized pinch ratio
+    active_fingers: int = 5
+    enable_gesture_snap: bool = False
+    pinch_threshold_ratio: float = 0.28
     filter_cooldown_sec: float = 0.35
     mode_cooldown_sec: float = 1.2
     gesture_cooldown_sec: float = 1.5
     fist_dist_threshold_px: float = 90.0
+    auto_cycle_interval: float = 2.0  # Auto switch filter every 2 seconds
     mirror: bool = True
     show_hud: bool = True
     output_dir: str = "captures"
 
 
 class FilterBank:
-    """Collection of real-time video filters for portal ROI processing."""
+    """Collection of 25 real-time video filters categorized into Themes."""
+
+    # --- CINEMATIC THEME ---
+    @staticmethod
+    def teal_orange(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        b, g, r = cv2.split(roi.astype(np.float32))
+        b = np.clip(b * 1.25 + 15, 0, 255)
+        r = np.clip(r * 1.3 + 20, 0, 255)
+        g = np.clip(g * 0.85, 0, 255)
+        return cv2.merge([b, g, r]).astype(np.uint8)
 
     @staticmethod
-    def dual_tone(roi: np.ndarray) -> np.ndarray:
+    def kodachrome(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        b, g, r = cv2.split(roi.astype(np.float32))
+        r = np.clip(r * 1.2, 0, 255)
+        g = np.clip(g * 1.05 + 10, 0, 255)
+        b = np.clip(b * 0.9, 0, 255)
+        return cv2.merge([b, g, r]).astype(np.uint8)
+
+    @staticmethod
+    def technicolor(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        b, g, r = cv2.split(roi.astype(np.float32))
+        r = np.clip(r * 1.4, 0, 255)
+        g = np.clip(g * 1.2, 0, 255)
+        b = np.clip(b * 0.8, 0, 255)
+        return cv2.merge([b, g, r]).astype(np.uint8)
+
+    @staticmethod
+    def noir_film(roi: np.ndarray) -> np.ndarray:
         if roi is None or roi.size == 0:
             return roi
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-        _, mask = cv2.threshold(gray, 110, 255, cv2.THRESH_BINARY)
-        out = np.zeros_like(roi)
-        out[mask == 255] = (10, 140, 255)
-        out[mask == 0] = (180, 30, 220)
-        return out
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+        contrast = clahe.apply(gray)
+        return cv2.cvtColor(contrast, cv2.COLOR_GRAY2BGR)
 
     @staticmethod
-    def thermal(roi: np.ndarray) -> np.ndarray:
+    def cinematic_warm(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        b, g, r = cv2.split(roi.astype(np.float32))
+        r = np.clip(r * 1.15 + 10, 0, 255)
+        g = np.clip(g * 1.05 + 5, 0, 255)
+        b = np.clip(b * 0.85, 0, 255)
+        return cv2.merge([b, g, r]).astype(np.uint8)
+
+    @staticmethod
+    def vignette_cinema(roi: np.ndarray) -> np.ndarray:
+        h, w = roi.shape[:2]
+        if h < 4 or w < 4:
+            return roi
+        kernel_x = cv2.getGaussianKernel(w, w / 2.5)
+        kernel_y = cv2.getGaussianKernel(h, h / 2.5)
+        kernel = kernel_y * kernel_x.T
+        mask = kernel / np.max(kernel)
+        mask_3c = cv2.merge([mask, mask, mask])
+        return np.clip(roi * mask_3c, 0, 255).astype(np.uint8)
+
+    @staticmethod
+    def sepia(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        kernel = np.array([
+            [0.272, 0.534, 0.131],
+            [0.349, 0.686, 0.168],
+            [0.393, 0.769, 0.189]
+        ])
+        res = cv2.transform(roi, kernel)
+        return np.clip(res, 0, 255).astype(np.uint8)
+
+    # --- ANIME & CARTOON THEME ---
+    @staticmethod
+    def anime_cel(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        bila = cv2.bilateralFilter(roi, 9, 75, 75)
+        gray = cv2.cvtColor(bila, cv2.COLOR_BGR2GRAY)
+        edges = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 9, 9)
+        color = np.clip(bila // 32 * 32, 0, 255)
+        return cv2.bitwise_and(color, cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR))
+
+    @staticmethod
+    def manga_ink(roi: np.ndarray) -> np.ndarray:
         if roi is None or roi.size == 0:
             return roi
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-        return cv2.applyColorMap(gray, cv2.COLORMAP_JET)
+        blur = cv2.GaussianBlur(gray, (5, 5), 0)
+        _, thresh = cv2.threshold(blur, 100, 255, cv2.THRESH_BINARY)
+        return cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
 
     @staticmethod
-    def sketch(roi: np.ndarray) -> np.ndarray:
+    def cartoon_classic(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        gray_blur = cv2.medianBlur(gray, 5)
+        edges = cv2.adaptiveThreshold(gray_blur, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 9, 9)
+        color = cv2.bilateralFilter(roi, 7, 200, 200)
+        return cv2.bitwise_and(color, cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR))
+
+    @staticmethod
+    def pop_art(roi: np.ndarray) -> np.ndarray:
+        h, w = roi.shape[:2]
+        if h < 4 or w < 4:
+            return roi
+        h_half, w_half = max(1, h // 2), max(1, w // 2)
+        small = cv2.resize(roi, (w_half, h_half))
+        t1 = FilterBank.dual_tone(small)
+        t2 = cv2.applyColorMap(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY), cv2.COLORMAP_OCEAN)
+        t3 = cv2.applyColorMap(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY), cv2.COLORMAP_PINK)
+        t4 = FilterBank.thermal(small)
+        top = np.hstack([t1, t2])
+        bottom = np.hstack([t3, t4])
+        return cv2.resize(np.vstack([top, bottom]), (w, h))
+
+    @staticmethod
+    def pencil_sketch(roi: np.ndarray) -> np.ndarray:
         if roi is None or roi.size == 0:
             return roi
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
@@ -223,15 +323,67 @@ class FilterBank:
         return cv2.cvtColor(sketch_img, cv2.COLOR_GRAY2BGR)
 
     @staticmethod
-    def pixelate(roi: np.ndarray, block_size: int = 14) -> np.ndarray:
-        h, w = roi.shape[:2]
-        if h < 2 or w < 2:
+    def posterize(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
             return roi
-        small = cv2.resize(roi, (max(1, w // block_size), max(1, h // block_size)), interpolation=cv2.INTER_LINEAR)
-        return cv2.resize(small, (w, h), interpolation=cv2.INTER_NEAREST)
+        n_colors = 4
+        return np.clip((roi // (256 // n_colors)) * (256 // n_colors), 0, 255).astype(np.uint8)
+
+    # --- CYBER & SCI-FI THEME ---
+    @staticmethod
+    def cyberpunk(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        b, g, r = cv2.split(roi.astype(np.float32))
+        r = np.clip(r * 1.3 + 20, 0, 255)
+        b = np.clip(b * 1.4 + 30, 0, 255)
+        g = np.clip(g * 0.7, 0, 255)
+        res = cv2.merge([b, g, r]).astype(np.uint8)
+        return cv2.addWeighted(res, 0.85, FilterBank.edge_neon(roi), 0.15, 0)
 
     @staticmethod
-    def glitch(roi: np.ndarray) -> np.ndarray:
+    def matrix(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        green = cv2.applyColorMap(gray, cv2.COLORMAP_SUMMER)
+        b, g, r = cv2.split(green)
+        g = cv2.add(g, 40)
+        return cv2.merge([b, g, r])
+
+    @staticmethod
+    def thermal(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        return cv2.applyColorMap(gray, cv2.COLORMAP_JET)
+
+    @staticmethod
+    def night_vision(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        green = cv2.applyColorMap(gray, cv2.COLORMAP_WINTER)
+        b, g, r = cv2.split(green)
+        g = np.clip(g * 1.3, 0, 255).astype(np.uint8)
+        return cv2.merge([np.zeros_like(b), g, np.zeros_like(r)])
+
+    @staticmethod
+    def hologram(roi: np.ndarray) -> np.ndarray:
+        h, w = roi.shape[:2]
+        if h < 4 or w < 4:
+            return roi
+        b, g, r = cv2.split(roi.astype(np.float32))
+        b = np.clip(b * 1.5 + 40, 0, 255)
+        g = np.clip(g * 1.1 + 20, 0, 255)
+        r = np.clip(r * 0.3, 0, 255)
+        out = cv2.merge([b, g, r]).astype(np.uint8)
+        scanlines = np.ones_like(out)
+        scanlines[::3, :, :] = 160
+        return cv2.multiply(out, scanlines // 255)
+
+    @staticmethod
+    def glitch_rgb(roi: np.ndarray) -> np.ndarray:
         h, w = roi.shape[:2]
         if h < 2 or w < 2:
             return roi
@@ -243,6 +395,78 @@ class FilterBank:
         for _ in range(2):
             y = random.randint(0, h - 1)
             out[y : y + 1, :] = np.random.randint(0, 255, (1, w, 3), dtype=np.uint8)
+        return out
+
+    # --- ARTISTIC & EFX THEME ---
+    @staticmethod
+    def oil_paint(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        small = cv2.resize(roi, (max(1, roi.shape[1] // 2), max(1, roi.shape[0] // 2)))
+        blur = cv2.medianBlur(small, 7)
+        return cv2.resize(blur, (roi.shape[1], roi.shape[0]))
+
+    @staticmethod
+    def rainbow_wave(roi: np.ndarray) -> np.ndarray:
+        h, w = roi.shape[:2]
+        if h < 2 or w < 2:
+            return roi
+        t = time.time() * 5.0
+        x_coords, y_coords = np.meshgrid(np.arange(w), np.arange(h))
+        pattern = np.sin((x_coords + y_coords) * 0.05 + t) * 127 + 128
+        rainbow = cv2.applyColorMap(pattern.astype(np.uint8), cv2.COLORMAP_HSV)
+        return cv2.addWeighted(roi, 0.3, rainbow, 0.7, 0)
+
+    @staticmethod
+    def edge_neon(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(gray, 60, 150)
+        colored = cv2.applyColorMap(edges, cv2.COLORMAP_SUMMER)
+        return cv2.bitwise_and(colored, colored, mask=edges)
+
+    @staticmethod
+    def pixelate(roi: np.ndarray, block_size: int = 14) -> np.ndarray:
+        h, w = roi.shape[:2]
+        if h < 2 or w < 2:
+            return roi
+        small = cv2.resize(roi, (max(1, w // block_size), max(1, h // block_size)), interpolation=cv2.INTER_LINEAR)
+        return cv2.resize(small, (w, h), interpolation=cv2.INTER_NEAREST)
+
+    @staticmethod
+    def vhs_tape(roi: np.ndarray) -> np.ndarray:
+        h, w = roi.shape[:2]
+        if h < 2 or w < 2:
+            return roi
+        b, g, r = cv2.split(roi)
+        r = np.roll(r, 3, axis=1)
+        b = np.roll(b, -3, axis=0)
+        merged = cv2.merge([b, g, r])
+        scanlines = np.ones_like(merged)
+        scanlines[::4, :, :] = 180
+        out = cv2.multiply(merged, scanlines // 255)
+        cv2.putText(out, "PLAY  >>", (15, h - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+        return out
+
+    @staticmethod
+    def solarize(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        threshold = 128
+        out = roi.copy()
+        out[roi > threshold] = 255 - out[roi > threshold]
+        return out
+
+    @staticmethod
+    def dual_tone(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        _, mask = cv2.threshold(gray, 110, 255, cv2.THRESH_BINARY)
+        out = np.zeros_like(roi)
+        out[mask == 255] = (10, 140, 255)
+        out[mask == 0] = (180, 30, 220)
         return out
 
     @staticmethod
@@ -258,106 +482,10 @@ class FilterBank:
         return cv2.merge([zeros, zeros, r])
 
     @staticmethod
-    def edge(roi: np.ndarray) -> np.ndarray:
-        if roi is None or roi.size == 0:
-            return roi
-        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 60, 150)
-        colored = cv2.applyColorMap(edges, cv2.COLORMAP_SUMMER)
-        return cv2.bitwise_and(colored, colored, mask=edges)
-
-    @staticmethod
     def blur(roi: np.ndarray) -> np.ndarray:
         if roi is None or roi.size == 0:
             return roi
         return cv2.GaussianBlur(roi, (25, 25), 0)
-
-    @staticmethod
-    def cartoon(roi: np.ndarray) -> np.ndarray:
-        if roi is None or roi.size == 0:
-            return roi
-        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-        gray_blur = cv2.medianBlur(gray, 5)
-        edges = cv2.adaptiveThreshold(gray_blur, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 9, 9)
-        color = cv2.bilateralFilter(roi, 9, 250, 250)
-        return cv2.bitwise_and(color, cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR))
-
-    @staticmethod
-    def rainbow_wave(roi: np.ndarray) -> np.ndarray:
-        h, w = roi.shape[:2]
-        if h < 2 or w < 2:
-            return roi
-        t = time.time() * 5.0
-        x_coords, y_coords = np.meshgrid(np.arange(w), np.arange(h))
-        pattern = np.sin((x_coords + y_coords) * 0.05 + t) * 127 + 128
-        rainbow = cv2.applyColorMap(pattern.astype(np.uint8), cv2.COLORMAP_HSV)
-        return cv2.addWeighted(roi, 0.3, rainbow, 0.7, 0)
-
-    @staticmethod
-    def cyberpunk(roi: np.ndarray) -> np.ndarray:
-        if roi is None or roi.size == 0:
-            return roi
-        b, g, r = cv2.split(roi.astype(np.float32))
-        r = np.clip(r * 1.3 + 20, 0, 255)
-        b = np.clip(b * 1.4 + 30, 0, 255)
-        g = np.clip(g * 0.7, 0, 255)
-        res = cv2.merge([b, g, r]).astype(np.uint8)
-        return cv2.addWeighted(res, 0.85, FilterBank.edge(roi), 0.15, 0)
-
-    @staticmethod
-    def vhs(roi: np.ndarray) -> np.ndarray:
-        h, w = roi.shape[:2]
-        if h < 2 or w < 2:
-            return roi
-        b, g, r = cv2.split(roi)
-        r = np.roll(r, 3, axis=1)
-        b = np.roll(b, -3, axis=0)
-        merged = cv2.merge([b, g, r])
-        scanlines = np.ones_like(merged)
-        scanlines[::4, :, :] = 180
-        out = cv2.multiply(merged, scanlines // 255)
-        cv2.putText(out, "PLAY  >>", (15, h - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-        return out
-
-    @staticmethod
-    def matrix(roi: np.ndarray) -> np.ndarray:
-        if roi is None or roi.size == 0:
-            return roi
-        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-        green = cv2.applyColorMap(gray, cv2.COLORMAP_SUMMER)
-        b, g, r = cv2.split(green)
-        g = cv2.add(g, 40)
-        return cv2.merge([b, g, r])
-
-    @staticmethod
-    def pop_art(roi: np.ndarray) -> np.ndarray:
-        h, w = roi.shape[:2]
-        if h < 4 or w < 4:
-            return roi
-        h_half, w_half = max(1, h // 2), max(1, w // 2)
-        small = cv2.resize(roi, (w_half, h_half))
-        
-        t1 = FilterBank.dual_tone(small)
-        t2 = cv2.applyColorMap(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY), cv2.COLORMAP_OCEAN)
-        t3 = cv2.applyColorMap(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY), cv2.COLORMAP_PINK)
-        t4 = FilterBank.thermal(small)
-        
-        top = np.hstack([t1, t2])
-        bottom = np.hstack([t3, t4])
-        grid = np.vstack([top, bottom])
-        return cv2.resize(grid, (w, h))
-
-    @staticmethod
-    def sepia(roi: np.ndarray) -> np.ndarray:
-        if roi is None or roi.size == 0:
-            return roi
-        kernel = np.array([
-            [0.272, 0.534, 0.131],
-            [0.349, 0.686, 0.168],
-            [0.393, 0.769, 0.189]
-        ])
-        res = cv2.transform(roi, kernel)
-        return np.clip(res, 0, 255).astype(np.uint8)
 
 
 class GeometryUtils:
@@ -367,7 +495,6 @@ class GeometryUtils:
 
     @staticmethod
     def is_finger_extended(pts: List[Tuple[int, int]], finger_name: str) -> bool:
-        """Determine if a finger is extended (standing up) vs folded (curled down)."""
         if not pts or len(pts) < 21:
             return True
 
@@ -391,7 +518,6 @@ class GeometryUtils:
         pip = np.array(pts[pip_idx])
         tip = np.array(pts[tip_idx])
 
-        # A finger is extended if its tip is further from the wrist than its PIP joint
         return float(np.linalg.norm(tip - wrist)) > float(np.linalg.norm(pip - wrist)) * 1.08
 
     @staticmethod
@@ -416,7 +542,6 @@ class GeometryUtils:
 
     @staticmethod
     def is_pinch_pts(pts: List[Tuple[int, int]], ratio_threshold: float = 0.28) -> bool:
-        """Distance-invariant pinch check normalized by hand scale."""
         if not pts or len(pts) < 21:
             return False
         wrist = pts[0]
@@ -434,7 +559,6 @@ class GeometryUtils:
 
     @staticmethod
     def sort_polygon_vertices(pts: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
-        """Sort vertices counter-clockwise around centroid. Guarantees ZERO polygon self-intersection / folding."""
         if len(pts) < 3:
             return pts
         cx = sum(p[0] for p in pts) / len(pts)
@@ -459,8 +583,6 @@ class Toast:
 
 
 class ToastManager:
-    """Manages sleek floating notification toasts on HUD."""
-
     def __init__(self) -> None:
         self.toasts: List[Toast] = []
 
@@ -494,28 +616,57 @@ class ToastManager:
 class PortalProcessor:
     def __init__(self, cfg: PipelineConfig):
         self.cfg = cfg
-        self.filters: Dict[str, Callable[[np.ndarray], np.ndarray]] = {
-            "cyberpunk": FilterBank.cyberpunk,
-            "dual-tone": FilterBank.dual_tone,
-            "thermal": FilterBank.thermal,
-            "sketch": FilterBank.sketch,
-            "pixelate": FilterBank.pixelate,
-            "glitch": FilterBank.glitch,
-            "vhs": FilterBank.vhs,
-            "matrix": FilterBank.matrix,
-            "pop-art": FilterBank.pop_art,
-            "sepia": FilterBank.sepia,
-            "invert": FilterBank.invert,
-            "red-channel": FilterBank.red_channel,
-            "edge": FilterBank.edge,
-            "blur": FilterBank.blur,
-            "cartoon": FilterBank.cartoon,
-            "rainbow-wave": FilterBank.rainbow_wave,
+
+        # 25 Filters mapped by Theme
+        self.themed_filters: Dict[str, Dict[str, Callable[[np.ndarray], np.ndarray]]] = {
+            "CINEMATIC": {
+                "teal-orange": FilterBank.teal_orange,
+                "kodachrome": FilterBank.kodachrome,
+                "technicolor": FilterBank.technicolor,
+                "noir-film": FilterBank.noir_film,
+                "cinematic-warm": FilterBank.cinematic_warm,
+                "vignette-cinema": FilterBank.vignette_cinema,
+                "sepia-vintage": FilterBank.sepia,
+            },
+            "ANIME": {
+                "anime-cel": FilterBank.anime_cel,
+                "manga-ink": FilterBank.manga_ink,
+                "cartoon-classic": FilterBank.cartoon_classic,
+                "pop-art": FilterBank.pop_art,
+                "pencil-sketch": FilterBank.pencil_sketch,
+                "posterize": FilterBank.posterize,
+            },
+            "CYBER": {
+                "cyberpunk": FilterBank.cyberpunk,
+                "matrix": FilterBank.matrix,
+                "thermal": FilterBank.thermal,
+                "night-vision": FilterBank.night_vision,
+                "hologram": FilterBank.hologram,
+                "glitch-rgb": FilterBank.glitch_rgb,
+            },
+            "ARTISTIC": {
+                "oil-paint": FilterBank.oil_paint,
+                "rainbow-wave": FilterBank.rainbow_wave,
+                "edge-neon": FilterBank.edge_neon,
+                "pixelate": FilterBank.pixelate,
+                "vhs-tape": FilterBank.vhs_tape,
+                "solarize": FilterBank.solarize,
+            },
         }
+
+        # Flattened filters dict for fast access
+        self.filters: Dict[str, Callable[[np.ndarray], np.ndarray]] = {}
+        for theme, fdict in self.themed_filters.items():
+            self.filters.update(fdict)
+
         self.filter_keys = list(self.filters.keys())
+        self.active_theme_name = "ALL"
         self.active_filter_idx = 0
-        self.is_3d_mode = False
         
+        self.auto_cycle_active = False
+        self.last_auto_cycle_time = 0.0
+        
+        self.is_3d_mode = False
         self.last_switch_time = 0.0
         self.last_mode_toggle = 0.0
         self.last_gesture_time = 0.0
@@ -536,13 +687,28 @@ class PortalProcessor:
     def current_filter_name(self) -> str:
         return self.filter_keys[self.active_filter_idx]
 
-    @property
-    def secondary_filter_name(self) -> str:
-        return self.filter_keys[(self.active_filter_idx + 1) % len(self.filter_keys)]
-
     def cycle_filter(self, step: int = 1) -> None:
         self.active_filter_idx = (self.active_filter_idx + step) % len(self.filter_keys)
         self.toast_mgr.add(f"Filter: {self.current_filter_name.upper()}", "*", 1.8)
+
+    def toggle_auto_cycle(self) -> None:
+        self.auto_cycle_active = not self.auto_cycle_active
+        status = "ON (Every 2s)" if self.auto_cycle_active else "OFF (Gesture/Manual)"
+        self.toast_mgr.add(f"Auto-Cycle: {status}", "A", 2.2)
+
+    def cycle_theme(self) -> None:
+        themes = ["ALL", "CINEMATIC", "ANIME", "CYBER", "ARTISTIC"]
+        curr_idx = themes.index(self.active_theme_name) if self.active_theme_name in themes else 0
+        next_theme = themes[(curr_idx + 1) % len(themes)]
+        self.active_theme_name = next_theme
+
+        if next_theme == "ALL":
+            self.filter_keys = list(self.filters.keys())
+        else:
+            self.filter_keys = list(self.themed_filters[next_theme].keys())
+
+        self.active_filter_idx = 0
+        self.toast_mgr.add(f"Theme: {next_theme}", "T", 2.0)
 
     def set_active_fingers(self, count: int) -> None:
         self.cfg.active_fingers = max(1, min(5, count))
@@ -677,7 +843,6 @@ class PortalProcessor:
             cv2.circle(frame, pt, 4, (0, 240, 255), -1)
 
     def select_active_fingertips(self, hand_pts: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
-        """Select ONLY extended (standing up) fingertips, ignoring folded fingers."""
         if not hand_pts or len(hand_pts) < 21:
             return hand_pts if hand_pts else []
 
@@ -707,6 +872,12 @@ class PortalProcessor:
         frame = cv2.resize(frame, (self.cfg.frame_width, self.cfg.frame_height))
         now = time.time()
 
+        # Handle Auto-Cycle Filter (Switch every 2 seconds if active)
+        if self.auto_cycle_active:
+            if now - self.last_auto_cycle_time > self.cfg.auto_cycle_interval:
+                self.cycle_filter(1)
+                self.last_auto_cycle_time = now
+
         raw_hands = self.engine.detect(frame)
         hands = self.smoother.smooth(raw_hands)
         
@@ -727,7 +898,6 @@ class PortalProcessor:
                     all_hand_tips.append(selected_tips)
 
                 if len(hand_pts) >= 21:
-                    # Distance-invariant normalized pinch check
                     if GeometryUtils.is_pinch_pts(hand_pts, self.cfg.pinch_threshold_ratio):
                         if now - self.last_switch_time > self.cfg.filter_cooldown_sec:
                             self.cycle_filter(1)
@@ -789,7 +959,6 @@ class PortalProcessor:
         if h < 100 or w < 300:
             return
 
-        # Glass Header Box (Top 0-52px)
         header_sub = frame[0:52, 0:w]
         glass_header = cv2.addWeighted(header_sub, 0.25, np.full_like(header_sub, 15), 0.75, 0)
         cv2.line(glass_header, (0, 51), (w, 51), (0, 240, 255), 1)
@@ -800,22 +969,22 @@ class PortalProcessor:
         cv2.putText(frame, "PRO", (135, 32), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 0, 200), 1)
 
         # Mode Badge
-        mode_str = "3D MESH" if self.is_3d_mode else ("2D BOWTIE" if is_bowtie else "2D QUAD")
-        cv2.rectangle(frame, (195, 14), (315, 38), (40, 40, 50), -1)
-        cv2.rectangle(frame, (195, 14), (315, 38), (100, 100, 120), 1)
-        cv2.putText(frame, mode_str, (205, 31), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 200, 255), 1)
+        mode_str = "3D MESH" if self.is_3d_mode else "2D QUAD"
+        cv2.rectangle(frame, (190, 14), (280, 38), (40, 40, 50), -1)
+        cv2.rectangle(frame, (190, 14), (280, 38), (100, 100, 120), 1)
+        cv2.putText(frame, mode_str, (198, 31), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (200, 200, 255), 1)
 
-        # Filter Pill
-        filter_str = f"[{self.active_filter_idx + 1:02d}/{len(self.filter_keys):02d}] {self.current_filter_name.upper()}"
-        cv2.rectangle(frame, (325, 14), (540, 38), (30, 30, 40), -1)
-        cv2.rectangle(frame, (325, 14), (540, 38), (0, 240, 255), 1)
-        cv2.putText(frame, filter_str, (335, 31), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 240, 255), 1)
+        # Theme & Filter Pill
+        filter_str = f"[{self.active_theme_name}] {self.current_filter_name.upper()}"
+        cv2.rectangle(frame, (290, 14), (540, 38), (30, 30, 40), -1)
+        cv2.rectangle(frame, (290, 14), (540, 38), (0, 240, 255), 1)
+        cv2.putText(frame, filter_str, (298, 31), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 240, 255), 1)
 
-        # Finger Setting Pill
-        finger_str = f"FINGERS: {self.cfg.active_fingers}"
-        cv2.rectangle(frame, (550, 14), (660, 38), (40, 30, 50), -1)
-        cv2.rectangle(frame, (550, 14), (660, 38), (255, 0, 200), 1)
-        cv2.putText(frame, finger_str, (558, 31), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (255, 180, 255), 1)
+        # Auto-Cycle Pill
+        if self.auto_cycle_active:
+            cv2.rectangle(frame, (550, 14), (660, 38), (20, 80, 40), -1)
+            cv2.rectangle(frame, (550, 14), (660, 38), (0, 255, 120), 1)
+            cv2.putText(frame, "AUTO: 2s", (558, 31), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 255, 120), 1)
 
         # FPS & Recording Badges (Right side)
         fps_str = f"{fps} FPS"
@@ -833,7 +1002,7 @@ class PortalProcessor:
         cv2.line(glass_footer, (0, 0), (w, 0), (80, 80, 100), 1)
         frame[h - 32:h, 0:w] = glass_footer
 
-        controls_str = "[S] Snap | [G] Toggle Gesture Snap | [1-5/F] Fingers | [N/P] Filter | [R] Rec | [Q] Quit"
+        controls_str = "[A] Auto 2s | [T] Theme | [1-5/F] Fingers | [S] Snap | [N/P] Filter | [R] Rec | [Q] Quit"
         cv2.putText(frame, controls_str, (15, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (180, 180, 200), 1)
 
 
@@ -844,6 +1013,7 @@ def main() -> None:
     parser.add_argument("--height", type=int, default=540, help="Frame height (default: 540)")
     parser.add_argument("--fps", type=int, default=120, help="Target FPS (default: 120)")
     parser.add_argument("--fingers", type=int, default=5, choices=[1, 2, 3, 4, 5], help="Number of active portal fingers (1-5)")
+    parser.add_argument("--auto-cycle", action="store_true", help="Start with Auto-Cycle mode enabled (switches filter every 2s)")
     parser.add_argument("--gesture-snap", action="store_true", help="Enable peace sign auto-screenshot gesture by default")
     parser.add_argument("--no-hud", action="store_true", help="Start with HUD disabled")
     args = parser.parse_args()
@@ -858,6 +1028,9 @@ def main() -> None:
         show_hud=not args.no_hud,
     )
     processor = PortalProcessor(cfg)
+    if args.auto_cycle:
+        processor.auto_cycle_active = True
+
     cap = None
 
     for cam_index in [cfg.cam_index, 0, 1, 2, 3]:
@@ -875,7 +1048,6 @@ def main() -> None:
         print("[ERROR] Kamera tidak terdeteksi! Silakan hubungkan webcam.")
         return
 
-    # Set requested resolution, 120 FPS & minimal buffer latency
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, cfg.frame_width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cfg.frame_height)
     cap.set(cv2.CAP_PROP_FPS, cfg.target_fps)
@@ -883,8 +1055,8 @@ def main() -> None:
 
     cv2.namedWindow("HandFlux Pro Engine", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("HandFlux Pro Engine", cfg.frame_width, cfg.frame_height)
-    print("[INFO] HandFlux Pro berjalan (Uncapped 120 FPS Mode).")
-    print("[INFO] Kontrol: [S] Screenshot Manual | [G] Toggle Gesture Snap | [1-5 / F] Jari | [Q] Keluar")
+    print("[INFO] HandFlux Pro berjalan (25 Filters, Auto-Cycle Mode Available).")
+    print("[INFO] Kontrol: [A] Auto-Cycle 2s | [T] Switch Theme | [S] Screenshot | [1-5 / F] Jari | [Q] Keluar")
 
     try:
         while True:
@@ -908,6 +1080,10 @@ def main() -> None:
             key = cv2.waitKey(1) & 0xFF
             if key in (ord("q"), ord("Q"), 27):
                 break
+            elif key in (ord("a"), ord("A")):
+                processor.toggle_auto_cycle()
+            elif key in (ord("t"), ord("T")):
+                processor.cycle_theme()
             elif key in (ord("s"), ord("S")):
                 processor.capture_screenshot(out_frame)
             elif key in (ord("g"), ord("G")):
