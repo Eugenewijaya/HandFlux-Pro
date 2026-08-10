@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Foto Kita Blur Engine - Real-time Romantic 40% Love Blur Camera
-Detects V-Sign (Peace Sign ✌️) hand gesture to activate 40% Screen Blur & Floating Love Balloons.
+Foto Kita Blur Engine - Real-time Romantic 40% Love Blur Camera for Couples
+Detects V-Sign (Peace Sign ✌️) hand gesture to activate smooth 40% Screen Blur & Floating Love Balloons.
+Includes real-time HD Camera Enhancement (CLAHE + Unsharp Masking + Warm Skin Tone) & Couple Aesthetic UI.
 Saves all captures locally to 'foto kita blurr/' folder.
 """
 
@@ -25,14 +26,32 @@ except ImportError:
     MP_AVAILABLE = False
 
 
-HAND_CONNECTIONS = [
-    (0, 1), (1, 2), (2, 3), (3, 4),
-    (0, 5), (5, 6), (6, 7), (7, 8),
-    (5, 9), (9, 10), (10, 11), (11, 12),
-    (9, 13), (13, 14), (14, 15), (15, 16),
-    (13, 17), (17, 18), (18, 19), (19, 20),
-    (0, 17)
-]
+def enhance_camera_hd(frame: np.ndarray) -> np.ndarray:
+    """
+    Applies real-time HD Camera Enhancement:
+    1. LAB CLAHE for adaptive contrast & detail expansion
+    2. Unsharp Masking for crisp HD sharpness
+    3. Gentle warm skin-tone tint for flattering couple photos
+    """
+    if frame is None or frame.size == 0:
+        return frame
+
+    # 1. LAB CLAHE for contrast and facial detail enhancement
+    lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
+    l_channel, a_channel, b_channel = cv2.split(lab)
+    clahe = cv2.createCLAHE(clipLimit=1.6, tileGridSize=(8, 8))
+    cl = clahe.apply(l_channel)
+    enhanced_lab = cv2.merge((cl, a_channel, b_channel))
+    bgr = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+
+    # 2. Unsharp Masking for crisp HD clarity
+    gaussian = cv2.GaussianBlur(bgr, (0, 0), 2.2)
+    hd_frame = cv2.addWeighted(bgr, 1.20, gaussian, -0.20, 0)
+
+    # 3. Flattering warm skin tint (+5 Red channel boost)
+    hd_frame[:, :, 2] = np.clip(hd_frame[:, :, 2].astype(np.int16) + 5, 0, 255).astype(np.uint8)
+
+    return hd_frame
 
 
 class HandDetectorEngine:
@@ -188,20 +207,20 @@ class LoveBalloon:
     def __init__(self, w: int, h: int) -> None:
         self.x = float(random.randint(20, max(20, w - 20)))
         self.y = float(h + random.randint(10, 60))
-        self.size = float(random.randint(18, 38))
-        self.speed_y = float(random.uniform(2.5, 5.2))
-        self.wobble_freq = float(random.uniform(2.0, 5.0))
-        self.wobble_amp = float(random.uniform(1.2, 3.5))
+        self.size = float(random.randint(22, 42))
+        self.speed_y = float(random.uniform(2.2, 4.8))
+        self.wobble_freq = float(random.uniform(2.0, 4.5))
+        self.wobble_amp = float(random.uniform(1.2, 3.2))
         self.start_t = time.time()
         self.color = random.choice([
-            (180, 105, 255),  # Soft Pink
-            (80, 40, 240),    # Romantic Crimson
-            (220, 60, 255),   # Vibrant Magenta
-            (100, 50, 255),   # Deep Rose
-            (240, 240, 255),  # Pure White
-            (80, 215, 255),   # Warm Peach
+            (180, 105, 255),  # Soft Pink (BGR)
+            (90, 50, 245),    # Romantic Crimson
+            (220, 90, 255),   # Vibrant Rose
+            (120, 60, 255),   # Deep Magenta
+            (245, 245, 255),  # Pearl White
+            (100, 200, 255),  # Soft Gold / Coral
         ])
-        self.alpha = float(random.uniform(0.78, 0.95))
+        self.alpha = float(random.uniform(0.82, 0.96))
 
     def update(self) -> None:
         self.y -= self.speed_y
@@ -209,22 +228,25 @@ class LoveBalloon:
         self.x += math.sin(elapsed * self.wobble_freq) * self.wobble_amp
 
     def is_alive(self) -> bool:
-        return self.y > -80
+        return self.y > -90
 
-    def draw(self, frame: np.ndarray) -> None:
+    def draw(self, frame: np.ndarray, global_alpha: float = 1.0) -> None:
         if not self.is_alive():
             return
         h, w = frame.shape[:2]
         cx, cy = int(self.x), int(self.y)
         sz = self.size
 
-        if cx < -50 or cx > w + 50 or cy < -50 or cy > h + 80:
+        if cx < -50 or cx > w + 50 or cy < -50 or cy > h + 90:
             return
 
-        top_alpha = min(1.0, max(0.0, (cy + 20) / 120.0)) * self.alpha
+        top_alpha = min(1.0, max(0.0, (cy + 30) / 140.0)) * self.alpha * global_alpha
+        if top_alpha <= 0.01:
+            return
 
+        # Smooth parametric heart balloon
         pts = []
-        num_pts = 30
+        num_pts = 32
         for i in range(num_pts):
             t = (2 * math.pi / num_pts) * i
             hx = 16 * (math.sin(t) ** 3)
@@ -238,14 +260,16 @@ class LoveBalloon:
         cv2.fillPoly(ov, [pts_np], self.color)
         cv2.polylines(ov, [pts_np], True, (255, 255, 255), 1, cv2.LINE_AA)
 
+        # White shiny reflection highlight
         hx_shine = int(cx - sz * 0.25)
         hy_shine = int(cy - sz * 0.35)
-        cv2.circle(ov, (hx_shine, hy_shine), max(2, int(sz * 0.14)), (255, 255, 255), -1)
+        cv2.circle(ov, (hx_shine, hy_shine), max(2, int(sz * 0.15)), (255, 255, 255), -1)
 
+        # Curved string tail
         s_pts = []
-        for s in range(10):
-            sx = int(cx + math.sin(s * 0.6) * 3)
-            sy = int(cy + sz * 0.8 + s * 3.5)
+        for s in range(12):
+            sx = int(cx + math.sin(s * 0.5) * 3)
+            sy = int(cy + sz * 0.8 + s * 3.2)
             s_pts.append((sx, sy))
         cv2.polylines(ov, [np.array(s_pts, dtype=np.int32)], False, (220, 220, 220), 1, cv2.LINE_AA)
 
@@ -256,15 +280,15 @@ class LoveBalloonEngine:
     def __init__(self) -> None:
         self.balloons: List[LoveBalloon] = []
 
-    def spawn(self, w: int, h: int, count: int = 3) -> None:
+    def spawn(self, w: int, h: int, count: int = 2) -> None:
         for _ in range(count):
             self.balloons.append(LoveBalloon(w, h))
 
-    def update_and_draw(self, frame: np.ndarray) -> None:
+    def update_and_draw(self, frame: np.ndarray, global_alpha: float = 1.0) -> None:
         self.balloons = [b for b in self.balloons if b.is_alive()]
         for b in self.balloons:
             b.update()
-            b.draw(frame)
+            b.draw(frame, global_alpha)
 
 
 def is_v_sign(pts: List[Tuple[int, int]]) -> bool:
@@ -278,17 +302,79 @@ def is_v_sign(pts: List[Tuple[int, int]]) -> bool:
     return (d_index > d_ring * 1.2) and (d_middle > d_pinky * 1.2) and (d_ring < d_index * 0.75)
 
 
+def draw_romantic_ui(frame: np.ndarray, blur_weight: float, toast_msg: str, toast_time: float) -> None:
+    """
+    Renders an elegant, romantic glassmorphic UI tailored for couples.
+    No tech debug lines or raw numbers.
+    """
+    h, w = frame.shape[:2]
+
+    # Glass Header Pill (Rose Gold Theme)
+    header_w = 260
+    header_h = 44
+    hx1 = (w - header_w) // 2
+    hy1 = 12
+    hx2 = hx1 + header_w
+    hy2 = hy1 + header_h
+
+    sub_hdr = frame[hy1:hy2, hx1:hx2]
+    if sub_hdr.size > 0:
+        glass = cv2.addWeighted(sub_hdr, 0.35, np.full_like(sub_hdr, (40, 20, 60)), 0.65, 0)
+        cv2.rectangle(glass, (0, 0), (header_w, header_h), (200, 140, 255), 1)
+        frame[hy1:hy2, hx1:hx2] = glass
+        cv2.putText(frame, "Foto Kita  ", (hx1 + 45, hy1 + 28), cv2.FONT_HERSHEY_TRIPLEX, 0.65, (255, 230, 255), 1, cv2.LINE_AA)
+        cv2.putText(frame, "LOVE BLUR", (hx1 + 145, hy1 + 28), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (180, 105, 255), 1, cv2.LINE_AA)
+
+    # Toast Notification
+    now = time.time()
+    if toast_msg and (now - toast_time < 3.0):
+        alpha_t = min(1.0, max(0.0, (3.0 - (now - toast_time)) / 0.5))
+        (tw, th), _ = cv2.getTextSize(toast_msg, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+        tx1 = (w - tw) // 2 - 15
+        ty1 = hy2 + 15
+        tx2 = tx1 + tw + 30
+        ty2 = ty1 + th + 14
+
+        if tx1 > 0 and tx2 < w and ty1 > 0 and ty2 < h:
+            sub_t = frame[ty1:ty2, tx1:tx2]
+            glass_t = cv2.addWeighted(sub_t, 0.25, np.full_like(sub_t, (50, 25, 70)), 0.75, 0)
+            cv2.rectangle(glass_t, (0, 0), (tx2 - tx1, ty2 - ty1), (255, 160, 220), 1)
+            frame[ty1:ty2, tx1:tx2] = glass_t
+            cv2.putText(frame, toast_msg, (tx1 + 15, ty1 + th + 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 240, 255), 1, cv2.LINE_AA)
+
+    # Romantic Footer Guide
+    footer_w = 420
+    footer_h = 32
+    fx1 = (w - footer_w) // 2
+    fy1 = h - 42
+    fx2 = fx1 + footer_w
+    fy2 = fy1 + footer_h
+
+    sub_ftr = frame[fy1:fy2, fx1:fx2]
+    if sub_ftr.size > 0:
+        glass_ftr = cv2.addWeighted(sub_ftr, 0.25, np.full_like(sub_ftr, (30, 15, 45)), 0.75, 0)
+        cv2.rectangle(glass_ftr, (0, 0), (footer_w, footer_h), (180, 120, 220), 1)
+        frame[fy1:fy2, fx1:fx2] = glass_ftr
+        cv2.putText(frame, "Pose Peace (V) Bersama Pasangan untuk Blur 40%", (fx1 + 18, fy1 + 21), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (230, 210, 255), 1, cv2.LINE_AA)
+
+
 def main() -> None:
     w, h = 960, 540
     engine = HandDetectorEngine(w, h, detect_scale=0.5)
     smoother = HandSmoother(alpha=0.45, ghost_frames=12)
     love_engine = LoveBalloonEngine()
 
-    v_blur_timer = 0.0
-    v_blur_duration = 3.5
     v_blur_dir = "foto kita blurr"
-    last_v_snap_time = 0.0
     os.makedirs(v_blur_dir, exist_ok=True)
+
+    # Smooth transition state variable (0.0 = Normal HD, 1.0 = Full 40% Love Blur)
+    blur_weight = 0.0
+    target_blur_weight = 0.0
+    v_sign_active_until = 0.0
+    last_v_snap_time = 0.0
+    shutter_flash_frames = 0
+    toast_msg = ""
+    toast_time = 0.0
 
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW if sys.platform.startswith("win") else cv2.CAP_ANY)
     if not cap.isOpened():
@@ -302,22 +388,26 @@ def main() -> None:
     cv2.namedWindow("Foto Kita Blur Camera", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("Foto Kita Blur Camera", w, h)
 
-    print("\n❤️ FOTO KITA BLUR CAMERA ENGINE")
-    print("  ✌️  Gestur Tangan V (Peace Sign) -> Activate 40% Screen Blur + Floating Love Balloons")
-    print("  📸  Foto otomatis disimpan ke  -> 'foto kita blurr/'")
-    print("  📸  Tekan 'S'                   -> Take manual photo")
-    print("  ❌  Tekan 'Q' atau ESC         -> Keluar\n")
+    print("\n❤️ FOTO KITA BLUR — CAMERA ENGINE (COUPLE EDITION)")
+    print("  ✌️  Gestur Tangan Peace (V)  -> Smooth 40% Screen Blur + Floating Love Balloons")
+    print("  ✨  HD Camera Enhancer      -> Active (LAB CLAHE + Unsharp Masking)")
+    print("  📸  Foto otomatis disimpan ke -> 'foto kita blurr/'")
+    print("  📸  Tekan 'S'                -> Foto manual")
+    print("  ❌  Tekan 'Q' atau ESC      -> Keluar\n")
 
     frame_count = 0
 
     try:
         while True:
-            ret, frame = cap.read()
+            ret, raw_frame = cap.read()
             if not ret:
                 break
 
-            frame = cv2.flip(frame, 1)
+            raw_frame = cv2.flip(raw_frame, 1)
             now = time.time()
+
+            # 1. Apply HD Camera Enhancer for crystal clear webcam footage
+            frame = enhance_camera_hd(raw_frame)
 
             frame_count += 1
             if frame_count % 2 == 0:
@@ -327,35 +417,49 @@ def main() -> None:
 
             hands = smoother.smooth(raw_hands)
 
+            v_sign_detected = False
             if hands:
                 for hand_pts in hands:
-                    for p1_idx, p2_idx in HAND_CONNECTIONS:
-                        cv2.line(frame, hand_pts[p1_idx], hand_pts[p2_idx], (255, 105, 180), 2)
-                    for pt in hand_pts:
-                        cv2.circle(frame, pt, 4, (0, 240, 255), -1)
-
                     if is_v_sign(hand_pts):
-                        v_blur_timer = now + v_blur_duration
-                        if now - last_v_snap_time > 2.5:
-                            fn = os.path.join(v_blur_dir, f"foto_kita_blurr_{int(time.time() * 1000)}.png")
-                            cv2.imwrite(fn, frame)
-                            print(f"[INFO] Foto Love Blur disimpan ke: {os.path.abspath(fn)}")
-                            last_v_snap_time = now
+                        v_sign_detected = True
+                        break
 
-            # Render 40% Gaussian Blur + Floating Love Balloons
-            if now < v_blur_timer:
-                blurred = cv2.GaussianBlur(frame, (29, 29), 0)
-                frame = cv2.addWeighted(frame, 0.60, blurred, 0.40, 0)
-                love_engine.spawn(w, h, count=3)
-                love_engine.update_and_draw(frame)
+            # Trigger 40% Love Blur on V-Sign
+            if v_sign_detected:
+                v_sign_active_until = now + 3.2
+                if now - last_v_snap_time > 2.5:
+                    fn = os.path.join(v_blur_dir, f"foto_kita_blurr_{int(time.time() * 1000)}.png")
+                    cv2.imwrite(fn, frame)
+                    print(f"[INFO] Foto Love Blur disimpan ke: {os.path.abspath(fn)}")
+                    last_v_snap_time = now
+                    shutter_flash_frames = 4
+                    toast_msg = "Foto tersimpan di 'foto kita blurr'! ♡"
+                    toast_time = now
 
-                cv2.rectangle(frame, (w // 2 - 180, 10), (w // 2 + 180, 42), (40, 20, 60), -1)
-                cv2.rectangle(frame, (w // 2 - 180, 10), (w // 2 + 180, 42), (220, 100, 255), 1)
-                cv2.putText(frame, "LOVE BLUR 40% (foto kita blurr)", (w // 2 - 165, 32), cv2.FONT_HERSHEY_SIMPLEX, 0.48, (255, 180, 255), 1, cv2.LINE_AA)
+            target_blur_weight = 1.0 if now < v_sign_active_until else 0.0
 
-            # Draw HUD Legend
-            cv2.putText(frame, "FOTO KITA BLUR", (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 105, 180), 2)
-            cv2.putText(frame, "[✌️ V-Sign] 40% Love Blur & Balloons  [S] Save Photo  [Q] Quit", (15, h - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (200, 200, 200), 1)
+            # 2. Smooth Lerp Transition between Normal & 40% Blur (No harsh snapping!)
+            lerp_speed = 0.08
+            blur_weight += (target_blur_weight - blur_weight) * lerp_speed
+
+            # 3. Apply Smooth 40% Blur Blend when active
+            if blur_weight > 0.01:
+                blurred = cv2.GaussianBlur(frame, (31, 31), 0)
+                effective_alpha = blur_weight * 0.40  # Exactly 40% max blur
+                frame = cv2.addWeighted(frame, 1.0 - effective_alpha, blurred, effective_alpha, 0)
+
+                # Spawn and render floating love balloons
+                love_engine.spawn(w, h, count=2)
+                love_engine.update_and_draw(frame, global_alpha=blur_weight)
+
+            # 4. Render Romantic Couple Glassmorphic UI
+            draw_romantic_ui(frame, blur_weight, toast_msg, toast_time)
+
+            # Camera Shutter Flash Animation
+            if shutter_flash_frames > 0:
+                white_overlay = np.full_like(frame, 255)
+                frame = cv2.addWeighted(frame, 0.45, white_overlay, 0.55, 0)
+                shutter_flash_frames -= 1
 
             cv2.imshow("Foto Kita Blur Camera", frame)
             key = cv2.waitKey(1) & 0xFF
@@ -364,6 +468,9 @@ def main() -> None:
             elif key in (ord("s"), ord("S")):
                 fn = os.path.join(v_blur_dir, f"foto_kita_blurr_{int(time.time() * 1000)}.png")
                 cv2.imwrite(fn, frame)
+                shutter_flash_frames = 4
+                toast_msg = "Foto tersimpan manual! ♡"
+                toast_time = now
                 print(f"[INFO] Foto disimpan manual ke: {os.path.abspath(fn)}")
     finally:
         cap.release()
