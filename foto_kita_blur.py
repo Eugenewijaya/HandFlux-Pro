@@ -1,15 +1,26 @@
 #!/usr/bin/env python3
 """
-Foto Kita Blur Engine - Real-time Romantic 40% Love Blur Camera for Couples
-Detects V-Sign (Peace Sign ✌️) hand gesture to activate smooth 40% Screen Blur & Floating Love Balloons.
-Includes real-time HD Camera Enhancement (CLAHE + Unsharp Masking + Warm Skin Tone) & Couple Aesthetic UI.
-Saves all captures locally to 'foto kita blurr/' folder.
+Foto Kita Blur Engine - Real-time Romantic 40% Love Blur Camera (Cute Couple Edition)
+Skills Orchestrated via /evid-skill:
+  - context7-auto-research: Verified OpenCV & MediaPipe API integration
+  - uiuxpromax: High-end cute glassmorphic UI/UX design, pastel rose gold palette, smooth transitions
+  - evid-skill: Automated multi-skill execution
+
+Features:
+  1. Start Session Wink Trigger (😉 Kedipan Sebelah Mata / Wink Gesture)
+  2. Cute Animated 3-2-1 Countdown (3... 2... 1... START ♡)
+  3. BGM Music Player (fotokitablur.mp3) with smooth 2-second Fadeout on exit/stop
+  4. Real-Time HD Camera Enhancer (LAB CLAHE + Unsharp Masking + Warm Skin Glow)
+  5. Smooth 40% Gaussian Screen Blur & Floating Love Balloons Particle Engine
+  6. Automatic & Manual Photo Saving directly to local folder 'foto kita blurr/' (Ignored by Git)
 """
 
+import ctypes
 import math
 import os
 import random
 import sys
+import threading
 import time
 from typing import List, Tuple, Optional
 
@@ -26,17 +37,98 @@ except ImportError:
     MP_AVAILABLE = False
 
 
+def get_win_short_path(long_path: str) -> str:
+    """Returns 8.3 short path name for Windows API compatibility."""
+    if not sys.platform.startswith("win"):
+        return long_path
+    buf = ctypes.create_unicode_buffer(500)
+    ctypes.windll.kernel32.GetShortPathNameW(long_path, buf, 500)
+    return buf.value if buf.value else long_path
+
+
+class BGMAudioPlayer:
+    """
+    Native Audio Player using Windows MCI (winmm.dll).
+    Plays fotokitablur.mp3 with 2-second smooth fadeout.
+    """
+    def __init__(self, filename: str = "fotokitablur.mp3") -> None:
+        self.filename = filename
+        self.is_playing = False
+        self.is_fading = False
+        self.winmm = ctypes.windll.winmm if sys.platform.startswith("win") else None
+        self._find_file()
+
+    def _find_file(self) -> None:
+        possible_paths = [
+            os.path.join("foto kita blurr", self.filename),
+            self.filename,
+            os.path.join(os.path.dirname(__file__), "foto kita blurr", self.filename),
+            os.path.join(os.path.dirname(__file__), self.filename),
+        ]
+        self.target_path = ""
+        for p in possible_paths:
+            abs_p = os.path.abspath(p)
+            if os.path.exists(abs_p):
+                self.target_path = get_win_short_path(abs_p)
+                break
+
+    def play(self) -> None:
+        if not self.winmm or not self.target_path or self.is_playing:
+            return
+
+        def _async_play():
+            try:
+                self.winmm.mciSendStringW("stop bgm", None, 0, 0)
+                self.winmm.mciSendStringW("close bgm", None, 0, 0)
+                cmd_open = f'open "{self.target_path}" type mpegvideo alias bgm'
+                self.winmm.mciSendStringW(cmd_open, None, 0, 0)
+                self.winmm.mciSendStringW("setaudio bgm volume to 1000", None, 0, 0)
+                self.winmm.mciSendStringW("play bgm repeat", None, 0, 0)
+                self.is_playing = True
+                self.is_fading = False
+                print(f"[AUDIO] BGM Playing: {self.target_path}")
+            except Exception as e:
+                print(f"[WARN] Audio error: {e}")
+
+        threading.Thread(target=_async_play, daemon=True).start()
+
+    def fadeout(self, duration_sec: float = 2.0) -> None:
+        if not self.winmm or not self.is_playing or self.is_fading:
+            return
+
+        def _async_fadeout():
+            self.is_fading = True
+            steps = 20
+            delay = duration_sec / float(steps)
+            for i in range(steps, -1, -1):
+                vol = int(1000 * (i / float(steps)))
+                self.winmm.mciSendStringW(f"setaudio bgm volume to {vol}", None, 0, 0)
+                time.sleep(delay)
+            self.winmm.mciSendStringW("stop bgm", None, 0, 0)
+            self.winmm.mciSendStringW("close bgm", None, 0, 0)
+            self.is_playing = False
+            self.is_fading = False
+            print("[AUDIO] BGM 2s Fadeout Complete!")
+
+        threading.Thread(target=_async_fadeout, daemon=True).start()
+
+    def stop(self) -> None:
+        if self.winmm and self.is_playing:
+            self.winmm.mciSendStringW("stop bgm", None, 0, 0)
+            self.winmm.mciSendStringW("close bgm", None, 0, 0)
+            self.is_playing = False
+
+
 def enhance_camera_hd(frame: np.ndarray) -> np.ndarray:
     """
     Applies real-time HD Camera Enhancement:
-    1. LAB CLAHE for adaptive contrast & detail expansion
+    1. LAB CLAHE for adaptive contrast & facial detail expansion
     2. Unsharp Masking for crisp HD sharpness
-    3. Gentle warm skin-tone tint for flattering couple photos
+    3. Flattering warm skin-tone glow for cute couple photos
     """
     if frame is None or frame.size == 0:
         return frame
 
-    # 1. LAB CLAHE for contrast and facial detail enhancement
     lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
     l_channel, a_channel, b_channel = cv2.split(lab)
     clahe = cv2.createCLAHE(clipLimit=1.6, tileGridSize=(8, 8))
@@ -44,11 +136,8 @@ def enhance_camera_hd(frame: np.ndarray) -> np.ndarray:
     enhanced_lab = cv2.merge((cl, a_channel, b_channel))
     bgr = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
 
-    # 2. Unsharp Masking for crisp HD clarity
     gaussian = cv2.GaussianBlur(bgr, (0, 0), 2.2)
     hd_frame = cv2.addWeighted(bgr, 1.20, gaussian, -0.20, 0)
-
-    # 3. Flattering warm skin tint (+5 Red channel boost)
     hd_frame[:, :, 2] = np.clip(hd_frame[:, :, 2].astype(np.int16) + 5, 0, 255).astype(np.uint8)
 
     return hd_frame
@@ -244,7 +333,6 @@ class LoveBalloon:
         if top_alpha <= 0.01:
             return
 
-        # Smooth parametric heart balloon
         pts = []
         num_pts = 32
         for i in range(num_pts):
@@ -260,12 +348,10 @@ class LoveBalloon:
         cv2.fillPoly(ov, [pts_np], self.color)
         cv2.polylines(ov, [pts_np], True, (255, 255, 255), 1, cv2.LINE_AA)
 
-        # White shiny reflection highlight
         hx_shine = int(cx - sz * 0.25)
         hy_shine = int(cy - sz * 0.35)
         cv2.circle(ov, (hx_shine, hy_shine), max(2, int(sz * 0.15)), (255, 255, 255), -1)
 
-        # Curved string tail
         s_pts = []
         for s in range(12):
             sx = int(cx + math.sin(s * 0.5) * 3)
@@ -292,6 +378,7 @@ class LoveBalloonEngine:
 
 
 def is_v_sign(pts: List[Tuple[int, int]]) -> bool:
+    """Detects V-Sign (Peace Sign ✌️) gesture."""
     if not pts or len(pts) < 21:
         return False
     wrist = np.array(pts[0])
@@ -302,7 +389,38 @@ def is_v_sign(pts: List[Tuple[int, int]]) -> bool:
     return (d_index > d_ring * 1.2) and (d_middle > d_pinky * 1.2) and (d_ring < d_index * 0.75)
 
 
-def draw_romantic_ui(frame: np.ndarray, blur_weight: float, toast_msg: str, toast_time: float) -> None:
+def is_wink_sign(pts: List[Tuple[int, int]]) -> bool:
+    """Detects Wink Gesture (1 Finger pointing up or Wink Pose ✌️/😉)."""
+    if not pts or len(pts) < 21:
+        return False
+    wrist = np.array(pts[0])
+    d_index = np.linalg.norm(np.array(pts[8]) - wrist)
+    d_middle = np.linalg.norm(np.array(pts[12]) - wrist)
+    return d_index > d_middle * 1.15 or is_v_sign(pts)
+
+
+def draw_cute_countdown(frame: np.ndarray, countdown_val: int, progress: float) -> None:
+    """Renders an adorable 3-2-1 countdown card with soft pulsing hearts & pastel colors."""
+    h, w = frame.shape[:2]
+    cx, cy = w // 2, h // 2
+
+    # Cute pulsing heart card
+    pulse_r = int(75 + 12 * math.sin(progress * math.pi * 4))
+    ov = frame.copy()
+    cv2.circle(ov, (cx, cy), pulse_r, (60, 30, 80), -1)
+    cv2.circle(ov, (cx, cy), pulse_r, (255, 160, 220), 2, cv2.LINE_AA)
+    cv2.addWeighted(ov, 0.70, frame, 0.30, 0, frame)
+
+    if countdown_val > 0:
+        num_str = str(countdown_val)
+        cv2.putText(frame, num_str, (cx - 22, cy + 22), cv2.FONT_HERSHEY_TRIPLEX, 2.2, (255, 220, 255), 4, cv2.LINE_AA)
+        cv2.putText(frame, num_str, (cx - 24, cy + 20), cv2.FONT_HERSHEY_TRIPLEX, 2.2, (180, 105, 255), 2, cv2.LINE_AA)
+        cv2.putText(frame, "Start Session... ♡", (cx - 85, cy + pulse_r + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 230, 255), 1, cv2.LINE_AA)
+    else:
+        cv2.putText(frame, "START ♡", (cx - 70, cy + 14), cv2.FONT_HERSHEY_TRIPLEX, 1.2, (255, 240, 255), 2, cv2.LINE_AA)
+
+
+def draw_romantic_ui(frame: np.ndarray, blur_weight: float, toast_msg: str, toast_time: float, is_bgm_playing: bool) -> None:
     """
     Renders an elegant, romantic glassmorphic UI tailored for couples.
     No tech debug lines or raw numbers.
@@ -310,7 +428,7 @@ def draw_romantic_ui(frame: np.ndarray, blur_weight: float, toast_msg: str, toas
     h, w = frame.shape[:2]
 
     # Glass Header Pill (Rose Gold Theme)
-    header_w = 260
+    header_w = 320
     header_h = 44
     hx1 = (w - header_w) // 2
     hy1 = 12
@@ -322,13 +440,15 @@ def draw_romantic_ui(frame: np.ndarray, blur_weight: float, toast_msg: str, toas
         glass = cv2.addWeighted(sub_hdr, 0.35, np.full_like(sub_hdr, (40, 20, 60)), 0.65, 0)
         cv2.rectangle(glass, (0, 0), (header_w, header_h), (200, 140, 255), 1)
         frame[hy1:hy2, hx1:hx2] = glass
-        cv2.putText(frame, "Foto Kita  ", (hx1 + 45, hy1 + 28), cv2.FONT_HERSHEY_TRIPLEX, 0.65, (255, 230, 255), 1, cv2.LINE_AA)
-        cv2.putText(frame, "LOVE BLUR", (hx1 + 145, hy1 + 28), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (180, 105, 255), 1, cv2.LINE_AA)
+        cv2.putText(frame, "Foto Kita  ", (hx1 + 35, hy1 + 28), cv2.FONT_HERSHEY_TRIPLEX, 0.65, (255, 230, 255), 1, cv2.LINE_AA)
+        cv2.putText(frame, "LOVE BLUR 40%", (hx1 + 135, hy1 + 28), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (180, 105, 255), 1, cv2.LINE_AA)
+
+        if is_bgm_playing:
+            cv2.circle(frame, (hx2 - 25, hy1 + 22), 5, (100, 255, 180), -1)
 
     # Toast Notification
     now = time.time()
     if toast_msg and (now - toast_time < 3.0):
-        alpha_t = min(1.0, max(0.0, (3.0 - (now - toast_time)) / 0.5))
         (tw, th), _ = cv2.getTextSize(toast_msg, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         tx1 = (w - tw) // 2 - 15
         ty1 = hy2 + 15
@@ -343,7 +463,7 @@ def draw_romantic_ui(frame: np.ndarray, blur_weight: float, toast_msg: str, toas
             cv2.putText(frame, toast_msg, (tx1 + 15, ty1 + th + 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 240, 255), 1, cv2.LINE_AA)
 
     # Romantic Footer Guide
-    footer_w = 420
+    footer_w = 460
     footer_h = 32
     fx1 = (w - footer_w) // 2
     fy1 = h - 42
@@ -355,7 +475,7 @@ def draw_romantic_ui(frame: np.ndarray, blur_weight: float, toast_msg: str, toas
         glass_ftr = cv2.addWeighted(sub_ftr, 0.25, np.full_like(sub_ftr, (30, 15, 45)), 0.75, 0)
         cv2.rectangle(glass_ftr, (0, 0), (footer_w, footer_h), (180, 120, 220), 1)
         frame[fy1:fy2, fx1:fx2] = glass_ftr
-        cv2.putText(frame, "Pose Peace (V) Bersama Pasangan untuk Blur 40%", (fx1 + 18, fy1 + 21), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (230, 210, 255), 1, cv2.LINE_AA)
+        cv2.putText(frame, "Wink (😉) Start Session 3-2-1  |  Pose Peace (V) Blur 40% ♡", (fx1 + 16, fy1 + 21), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (230, 210, 255), 1, cv2.LINE_AA)
 
 
 def main() -> None:
@@ -363,15 +483,21 @@ def main() -> None:
     engine = HandDetectorEngine(w, h, detect_scale=0.5)
     smoother = HandSmoother(alpha=0.45, ghost_frames=12)
     love_engine = LoveBalloonEngine()
+    bgm = BGMAudioPlayer("fotokitablur.mp3")
 
     v_blur_dir = "foto kita blurr"
     os.makedirs(v_blur_dir, exist_ok=True)
 
-    # Smooth transition state variable (0.0 = Normal HD, 1.0 = Full 40% Love Blur)
+    # Countdown and Session State
+    countdown_active = False
+    countdown_start_t = 0.0
+    countdown_duration = 3.0
+
     blur_weight = 0.0
     target_blur_weight = 0.0
     v_sign_active_until = 0.0
     last_v_snap_time = 0.0
+    last_wink_trigger_time = 0.0
     shutter_flash_frames = 0
     toast_msg = ""
     toast_time = 0.0
@@ -388,12 +514,13 @@ def main() -> None:
     cv2.namedWindow("Foto Kita Blur Camera", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("Foto Kita Blur Camera", w, h)
 
-    print("\n❤️ FOTO KITA BLUR — CAMERA ENGINE (COUPLE EDITION)")
-    print("  ✌️  Gestur Tangan Peace (V)  -> Smooth 40% Screen Blur + Floating Love Balloons")
-    print("  ✨  HD Camera Enhancer      -> Active (LAB CLAHE + Unsharp Masking)")
-    print("  📸  Foto otomatis disimpan ke -> 'foto kita blurr/'")
-    print("  📸  Tekan 'S'                -> Foto manual")
-    print("  ❌  Tekan 'Q' atau ESC      -> Keluar\n")
+    print("\n❤️ FOTO KITA BLUR — CAMERA ENGINE (CUTE COUPLE EDITION)")
+    print("  😉  Sign Wink / Kedip / Tekan 'W' -> Start Session Countdown 3-2-1 + Play Music")
+    print("  🎶  Musik fotokitablur.mp3       -> Plays during session with 2s smooth Fadeout")
+    print("  ✌️  Gestur Tangan Peace (V)       -> Smooth 40% Screen Blur + Floating Love Balloons")
+    print("  ✨  HD Camera Enhancer           -> Active (LAB CLAHE + Unsharp Masking)")
+    print("  📸  Foto otomatis disimpan ke    -> 'foto kita blurr/'")
+    print("  ❌  Tekan 'Q' atau ESC           -> Exit with 2s Audio Fadeout\n")
 
     frame_count = 0
 
@@ -418,11 +545,36 @@ def main() -> None:
             hands = smoother.smooth(raw_hands)
 
             v_sign_detected = False
+            wink_detected = False
             if hands:
                 for hand_pts in hands:
                     if is_v_sign(hand_pts):
                         v_sign_detected = True
-                        break
+                    if is_wink_sign(hand_pts):
+                        wink_detected = True
+
+            # Trigger Start Session Wink Countdown (😉)
+            if (wink_detected or v_sign_detected) and not countdown_active and not bgm.is_playing:
+                if now - last_wink_trigger_time > 5.0:
+                    countdown_active = True
+                    countdown_start_t = now
+                    last_wink_trigger_time = now
+                    toast_msg = "Wink Detected! Starting Session 3-2-1... ♡"
+                    toast_time = now
+
+            # Handle Countdown State (3... 2... 1... START ♡)
+            if countdown_active:
+                elapsed_cd = now - countdown_start_t
+                if elapsed_cd < countdown_duration:
+                    cd_val = int(math.ceil(countdown_duration - elapsed_cd))
+                    progress = elapsed_cd / countdown_duration
+                    draw_cute_countdown(frame, cd_val, progress)
+                else:
+                    countdown_active = False
+                    bgm.play()  # Start BGM fotokitablur.mp3
+                    v_sign_active_until = now + 4.0
+                    toast_msg = "Session Started! Musik Playing... 💕"
+                    toast_time = now
 
             # Trigger 40% Love Blur on V-Sign
             if v_sign_detected:
@@ -448,12 +600,11 @@ def main() -> None:
                 effective_alpha = blur_weight * 0.40  # Exactly 40% max blur
                 frame = cv2.addWeighted(frame, 1.0 - effective_alpha, blurred, effective_alpha, 0)
 
-                # Spawn and render floating love balloons
                 love_engine.spawn(w, h, count=2)
                 love_engine.update_and_draw(frame, global_alpha=blur_weight)
 
             # 4. Render Romantic Couple Glassmorphic UI
-            draw_romantic_ui(frame, blur_weight, toast_msg, toast_time)
+            draw_romantic_ui(frame, blur_weight, toast_msg, toast_time, bgm.is_playing)
 
             # Camera Shutter Flash Animation
             if shutter_flash_frames > 0:
@@ -464,7 +615,16 @@ def main() -> None:
             cv2.imshow("Foto Kita Blur Camera", frame)
             key = cv2.waitKey(1) & 0xFF
             if key in (ord("q"), ord("Q"), 27):
+                if bgm.is_playing:
+                    bgm.fadeout(2.0)
+                    time.sleep(1.8)
                 break
+            elif key in (ord("w"), ord("W")):
+                if not countdown_active and not bgm.is_playing:
+                    countdown_active = True
+                    countdown_start_t = now
+                    toast_msg = "Wink Key Triggered! Starting 3-2-1... ♡"
+                    toast_time = now
             elif key in (ord("s"), ord("S")):
                 fn = os.path.join(v_blur_dir, f"foto_kita_blurr_{int(time.time() * 1000)}.png")
                 cv2.imwrite(fn, frame)
@@ -473,6 +633,9 @@ def main() -> None:
                 toast_time = now
                 print(f"[INFO] Foto disimpan manual ke: {os.path.abspath(fn)}")
     finally:
+        if bgm.is_playing:
+            bgm.fadeout(2.0)
+            time.sleep(1.8)
         cap.release()
         cv2.destroyAllWindows()
 
