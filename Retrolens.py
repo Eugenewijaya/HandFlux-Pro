@@ -747,19 +747,11 @@ class PortalProcessor:
                 self.toggle_mode()
                 self.last_mode_toggle = now
 
-            if self.is_3d_mode:
-                if len(all_hand_tips) == 2:
-                    t1, t2 = all_hand_tips[0], all_hand_tips[1]
+            # Portal ONLY opens when TWO hands are present
+            if len(all_hand_tips) == 2:
+                t1, t2 = all_hand_tips[0], all_hand_tips[1]
+                if t1 and t2:
                     frame = self.render_portal(frame, t1 + t2, self.current_filter_name)
-                elif len(all_hand_tips) == 1:
-                    frame = self.render_portal(frame, all_hand_tips[0], self.current_filter_name)
-            else:
-                if len(all_hand_tips) == 2:
-                    t1, t2 = all_hand_tips[0], all_hand_tips[1]
-                    if t1 and t2:
-                        frame = self.render_portal(frame, t1 + t2, self.current_filter_name)
-                elif len(all_hand_tips) == 1:
-                    frame = self.render_portal(frame, all_hand_tips[0], self.current_filter_name)
 
         # Draw pinch ripple effect
         if self.pinch_anim_frames > 0 and self.pinch_anim_point is not None:
