@@ -131,9 +131,14 @@ class HandSmoother:
 class HandDetectorEngine:
     """Multi-backend hand tracking engine supporting MediaPipe Tasks, MediaPipe Solutions, and Fallback."""
 
-    def __init__(self, frame_width: int, frame_height: int) -> None:
+    def __init__(self, frame_width: int, frame_height: int, detect_scale: float = 0.5) -> None:
         self.w = frame_width
         self.h = frame_height
+        # ponytail: detect at half resolution for ~2x speed. Landmarks are
+        # 0-1 normalized so they map correctly to full-res display coords.
+        self.detect_scale = detect_scale
+        self.detect_w = max(1, int(frame_width * detect_scale))
+        self.detect_h = max(1, int(frame_height * detect_scale))
         self.mode = "none"
         self.tasks_detector = None
         self.solutions_detector = None
@@ -187,7 +192,12 @@ class HandDetectorEngine:
         if frame is None or frame.size == 0:
             return []
 
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # Downscale for faster inference
+        if self.detect_scale < 1.0:
+            small = cv2.resize(frame, (self.detect_w, self.detect_h), interpolation=cv2.INTER_LINEAR)
+            rgb = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
+        else:
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         hands_list = []
 
         if self.mode == "tasks" and self.tasks_detector is not None:
@@ -826,8 +836,10 @@ class PortalProcessor:
         self.pinch_anim_point: Optional[Tuple[int, int]] = None
         self.pinch_anim_frames = 0
 
-        self.engine = HandDetectorEngine(cfg.frame_width, cfg.frame_height)
+        self.engine = HandDetectorEngine(cfg.frame_width, cfg.frame_height, detect_scale=0.5)
         self.smoother = HandSmoother(alpha=0.45, ghost_frames=12)
+        self._frame_count = 0
+        self._detect_every = 2  # ponytail: skip-frame detection, smoother fills gaps
 
     @property
     def current_filter_name(self) -> str:
@@ -1012,7 +1024,9 @@ class PortalProcessor:
         start_t = time.time()
         if self.cfg.mirror:
             frame = cv2.flip(frame, 1)
-        frame = cv2.resize(frame, (self.cfg.frame_width, self.cfg.frame_height))
+        fh, fw = frame.shape[:2]
+        if fw != self.cfg.frame_width or fh != self.cfg.frame_height:
+            frame = cv2.resize(frame, (self.cfg.frame_width, self.cfg.frame_height))
         now = time.time()
 
         if self.auto_cycle_active:
@@ -1020,7 +1034,13 @@ class PortalProcessor:
                 self.cycle_filter(1)
                 self.last_auto_cycle_time = now
 
-        raw_hands = self.engine.detect(frame)
+        # ponytail: detect every Nth frame, let velocity-predicting smoother
+        # fill the gaps. Halves MediaPipe CPU cost with no visual quality loss.
+        self._frame_count += 1
+        if self._frame_count % self._detect_every == 0:
+            raw_hands = self.engine.detect(frame)
+        else:
+            raw_hands = []
         hands = self.smoother.smooth(raw_hands)
         
         all_hand_tips = []
