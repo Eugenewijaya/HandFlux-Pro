@@ -24,28 +24,26 @@
 ## 🇮🇩 Bahasa Indonesia
 
 ### 📖 Tentang HandFlux Pro
-**HandFlux Pro** adalah aplikasi *Computer Vision* interaktif yang mengubah gerakan tangan Anda menjadi portal efek visual real-time dan jurus Ninjutsu interaktif. Cukup bentangkan dua tangan di depan webcam untuk memproyeksikan portal efek futuristik dari **40 filter visual premium** yang dikategorikan ke dalam 5 tema utama (*Cinematic, Anime, Cyberpunk, Artistic, Exotic*) serta **Naruto Ninjutsu Engine** (*Rasengan, Fire Style, Chidori, Shadow Clone, Blast Explosion*).
+**HandFlux Pro** adalah ekosistem aplikasi *Computer Vision* interaktif berbasis Python, OpenCV, dan MediaPipe. Repositori ini memiliki 2 aplikasi utama yang terpisah secara fokus:
 
-Aplikasi ini dilengkapi dengan mode **Auto-Cycle 2 Detik** (otomatis berganti filter tanpa perlu gesture cubit), **Naruto Jutsu Activation via Tepuk Tangan (CLAP) / Hand Sign / Tombol**, pemilihan tema filter dinamis, deteksi jari berdiri yang presisi, serta pengurutan poligon anti-kelipet.
+1. **`HandFlux.py` — Real-Time Visual Filter Portal Engine (Fokus Utama Filter)**:
+   Aplikasi portal visual murni dengan **40 filter visual premium** yang dikategorikan ke dalam 5 tema (*Cinematic, Anime, Cyberpunk, Artistic, Exotic*), **Auto-Cycle 2s Mode**, deteksi jari berdiri, dan performa tinggi 120 FPS.
+2. **`naruto_jutsu.py` — Standalone Naruto Ninjutsu Camera Engine (Fokus Jurus Anime)**:
+   Aplikasi khusus jurus Ninjutsu interaktif yang memanfaatkan integrasi Kaggle Model (`menhari/naruto-hand-guesture-rasengan`). Rilis **Rasengan 🌀** dengan pita chakra 3D & ledakan Blast 💥 via **Tepuk Tangan (CLAP 👏)**, **Katon Fireball 🔥**, **Chidori ⚡**, dan **Shadow Clone 👥** secara terpisah!
 
 ---
 
-### 🎨 40 Filter Visual & Naruto Ninjutsu Engine
+### 🎨 40 Filter Visual & Kategori Tema (`HandFlux.py`)
 
-1. **🌀 NARUTO NINJUTSU ENGINE**:
-   - 🌀 **Rasengan & Blast**: Tepuk tangan (CLAP 👏) atau tekan `J`/`1` untuk mengeluarkan bola Rasengan 3D spiral chakra + ledakan Blast!
-   - 🔥 **Katon / Fire Style**: Tekan `K`/`2` untuk menyemburkan api Katon Fireball dari telapak tangan!
-   - ⚡ **Chidori**: Tekan `L`/`3` untuk mengalirkan petir kilat Chidori 1000 Burung!
-   - 👥 **Kage Bunshin / Shadow Clone**: Tekan `B`/`4` untuk membelah layar menjadi bayangan Shadow Clone!
-2. **🎬 Tema CINEMATIC & FILM (8 Filter)**:
+1. **🎬 Tema CINEMATIC & FILM (8 Filter)**:
    `Teal-Orange`, `Kodachrome`, `Technicolor`, `Noir-Film`, `Cinematic-Warm`, `Vignette-Cinema`, `Sepia-Vintage`, `Detail-Enhance (HDR)`.
-3. **⛩️ Tema ANIME & CARTOON (8 Filter)**:
+2. **⛩️ Tema ANIME & CARTOON (8 Filter)**:
    `Anime-Cel`, `Manga-Ink`, `Cartoon-Classic`, `Pop-Art`, `Pencil-Sketch`, `Pencil-Color`, `Stylized-Water`, `Posterize`.
-4. **⚡ Tema CYBER & SCI-FI (8 Filter)**:
+3. **⚡ Tema CYBER & SCI-FI (8 Filter)**:
    `Cyberpunk`, `Matrix`, `Thermal`, `Night-Vision`, `Hologram`, `Glitch-RGB`, `Anaglyph-3D`, `Emboss-3D`.
-5. **🎨 Tema ARTISTIC & EFX (8 Filter)**:
+4. **🎨 Tema ARTISTIC & EFX (8 Filter)**:
    `Oil-Paint`, `Rainbow-Wave`, `Edge-Neon`, `Pixelate`, `VHS-Tape`, `Solarize`, `Duotone-Cyan`, `Cross-Process`.
-6. **🌀 Tema EXOTIC (8 Filter)**:
+5. **🌀 Tema EXOTIC (8 Filter)**:
    `Pixel-Sort`, `Kaleidoscope`, `Water-Ripple`, `Frosted-Glass`, `CRT-Screen`, `Aurora-Gradient`, `Diamond-Mosaic`, `Dream-Glow`.
 
 ---
@@ -54,36 +52,29 @@ Aplikasi ini dilengkapi dengan mode **Auto-Cycle 2 Detik** (otomatis berganti fi
 
 | Fitur & Keunggulan | Kenapa Ini Lebih Keren? 🚀 |
 | --- | --- |
-| **🌀 Naruto Ninjutsu Engine** | Tepuk tangan (**CLAP 👏**) untuk merilis **Rasengan 🌀** dengan pita chakra spiral 3D & ledakan Blast, **Fire Style 🔥**, **Chidori ⚡**, dan **Shadow Clone 👥**! |
+| **🎨 40 Filter Visual Premium** | Koleksi 40 filter spektakuler dari gaya film sinematik, anime cel shading, cyberpunk neon, pixel sort glitch art, hingga efek 3D stereo. |
 | **🔄 Auto-Cycle Mode 2 Detik (`A`)** | Filter otomatis berganti setiap 2 detik secara acak tanpa perlu melakukan gestur cubit! |
 | **🏷️ Theme Category Switcher (`T`)** | Pilih kategori tema khusus (Cinematic, Anime, Cyber, Artistic, Exotic) atau jalankan seluruh filter secara acak. |
+| **🍃 Standalone Naruto Ninjutsu Engine** | Aplikasi terpisah `naruto_jutsu.py` khusus jurus **Rasengan 🌀**, **Fire Style 🔥**, **Chidori ⚡**, dan **Shadow Clone 👥**! |
 | **🖐️ Smart Standing Finger Filter** | Hanya mendeteksi dan menggunakan jari yang **berdiri tegak**. Jari yang dilipat ke telapak tangan otomatis diabaikan! |
 | **📐 CCW Polar Angle Sorting** | Poligon portal diurutkan berlawanan arah jarum jam secara matematis. **Portal 100% TIDAK AKAN KELIPET ATAU MENYILANG**! |
-| **🎨 40 Filter Visual Premium** | Koleksi 40 filter spektakuler dari gaya film sinematik, anime cel shading, cyberpunk neon, pixel sort glitch art, hingga efek 3D stereo. |
 | **✨ Velocity-Predicting Tracker** | Pelacak gerakan tangan berbasis *Velocity Prediction & Ghost Frames (12 frames)* untuk pergerakan portal mulus tanpa flicker. |
 | **🖥️ Glassmorphic HUD & Toasts** | Tampilan antarmuka transparan futuristik dilengkapi sistem notifikasi mengambang (*floating toast system*). |
-| **🖱️ One-Click Desktop Launcher** | Dilengkapi file batch & shortcut instan di Desktop Windows. |
+| **🖱️ One-Click Desktop Launcher** | Dilengkapi file batch & shortcut instan untuk kedua aplikasi di Windows. |
 | **⚡ High Frame-Rate Throughput** | Didukung optimasi buffer kamera real-time yang mampu membuka performa hingga 120 FPS. |
 
 ---
 
-### 🎮 Tabel Kontrol & Gesture
+### 🎮 Tabel Perintah & Eksekusi
 
-| Tombol / Gesture | Aksi & Fungsi |
+| Aplikasi / Perintah | Fungsi & Cara Pakai |
 | --- | --- |
-| 🖱️ **Double Click Shortcut** | Jalankan aplikasi langsung dari Desktop Windows |
-| 🔄 **Tombol `A`** | **Toggle Auto-Cycle Mode** (Filter otomatis berganti tiap 2 detik) |
-| 🏷️ **Tombol `T`** | **Ganti Tema Filter** (`ALL` ➔ `CINEMATIC` ➔ `ANIME` ➔ `CYBER` ➔ `ARTISTIC`) |
-| 🤏 **Pinch (Jempol + Telunjuk)** | Mengganti filter visual secara manual |
-| 🔢 **Tombol `1` - `5`** | Mengatur jumlah jari aktif (1=Lingkaran, 2=Kapsul, 3=Segitiga, 4=Quad, 5=Poligon 5 Sudut) |
-| 📸 **Tombol `S`** | Mengambil screenshot manual (tersimpan di `captures/`) |
-| ✌️ **Tombol `G`** | Toggle auto-screenshot gesture Peace Sign (`Off` secara default) |
-| 🎥 **Tombol `R`** | Memulai / menghentikan perekaman video MP4 |
-| ◀️▶️ **Tombol `N` / `P`** | Filter berikutnya / sebelumnya |
-| 🧊 **Tombol `C`** | Toggle mode portal 2D Quad vs 3D Mesh |
-| 🪞 **Tombol `M`** | Toggle mode Mirror (cermin) |
-| 👁️ **Tombol `H`** | Menyembunyikan / menampilkan HUD overlay |
-| 🚪 **Tombol `Q` / `Esc`** | Keluar dari aplikasi |
+| 🖼️ **Filter Portal (`HandFlux.py`)** | `python HandFlux.py` (atau `python HandFlux.py --auto-cycle`) |
+| 🍃 **Naruto Ninjutsu (`naruto_jutsu.py`)** | `python naruto_jutsu.py` (atau klik `Run Naruto Jutsu.bat`) |
+| 🔄 **Tombol `A`** | Toggle Auto-Cycle Mode (Filter ganti otomatis per 2s) |
+| 🏷️ **Tombol `T`** | Switch Kategori Tema Filter |
+| 🔢 **Tombol `1` - `5`** | Jumlah Jari Aktif Portal (1=Lingkaran, ..., 5=Hand Polygon) |
+| 👏 **CLAP Hands (Tepuk Tangan)** | Rilis **Rasengan 🌀** pada `naruto_jutsu.py` |
 
 ---
 
@@ -100,13 +91,14 @@ Aplikasi ini dilengkapi dengan mode **Auto-Cycle 2 Detik** (otomatis berganti fi
    pip install -r requirements.txt
    ```
 
-3. **Jalankan Aplikasi:**
+3. **Jalankan Aplikasi Filter Portal:**
    ```bash
    python HandFlux.py
    ```
-   *Atau dengan Auto-Cycle langsung aktif:*
+
+4. **Jalankan Aplikasi Naruto Ninjutsu Camera (Terpisah):**
    ```bash
-   python HandFlux.py --auto-cycle
+   python naruto_jutsu.py
    ```
 
 4. **Uji Coba Automated Test:**
