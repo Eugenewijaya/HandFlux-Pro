@@ -1646,7 +1646,16 @@ class PortalProcessor:
             frame = cv2.resize(frame, (self.cfg.frame_width, self.cfg.frame_height))
         now = time.time()
 
-        if self.auto_cycle_active:
+        # Check if any Naruto Jutsu effect is currently active
+        is_jutsu_active = (
+            self.rasengan.active
+            or self.chidori.active
+            or self.fireball.active
+            or self.blast.active
+            or self.shadow_clone.active
+        )
+
+        if self.auto_cycle_active and not is_jutsu_active:
             if now - self.last_auto_cycle_time > self.cfg.auto_cycle_interval:
                 self.active_filter_idx = random.randint(0, len(self.filter_keys) - 1)
                 self.toast_mgr.add(f"Filter: {self.current_filter_name.upper()}", "*", 1.8)
@@ -1687,7 +1696,7 @@ class PortalProcessor:
                 if selected_tips:
                     all_hand_tips.append(selected_tips)
 
-                if len(hand_pts) >= 21:
+                if len(hand_pts) >= 21 and not is_jutsu_active:
                     if GeometryUtils.is_pinch_pts(hand_pts, self.cfg.pinch_threshold_ratio):
                         if now - self.last_switch_time > self.cfg.filter_cooldown_sec:
                             self.cycle_filter(1)
@@ -1707,7 +1716,8 @@ class PortalProcessor:
                 self.toggle_mode()
                 self.last_mode_toggle = now
 
-            if len(all_hand_tips) == 2:
+            # Render portal ONLY IF no Naruto Jutsu is active
+            if len(all_hand_tips) == 2 and not is_jutsu_active:
                 t1, t2 = all_hand_tips[0], all_hand_tips[1]
                 if t1 and t2:
                     frame = self.render_portal(frame, t1 + t2, self.current_filter_name)
