@@ -42,17 +42,30 @@ def ensure_model_exists() -> bool:
 
 
 class HandSmoother:
-    """Exponential Moving Average (EMA) position smoother to eliminate landmark jitter."""
+    """Exponential Moving Average (EMA) position smoother with ghost-frame hold.
+    
+    When MediaPipe drops a frame, we hold the last known positions for up to
+    `ghost_frames` frames instead of instantly returning [] — this prevents
+    the portal from flickering every time a finger briefly occludes itself.
+    """
 
-    def __init__(self, alpha: float = 0.5) -> None:
+    def __init__(self, alpha: float = 0.6, ghost_frames: int = 4) -> None:
         self.alpha = alpha
+        self.ghost_frames = ghost_frames
         self.prev_hands: List[List[Tuple[float, float]]] = []
+        self._miss_count: int = 0
 
     def smooth(self, hands: List[List[Tuple[int, int]]]) -> List[List[Tuple[int, int]]]:
         if not hands:
+            # Hold last known positions for a few frames before clearing
+            if self.prev_hands and self._miss_count < self.ghost_frames:
+                self._miss_count += 1
+                return [[(int(p[0]), int(p[1])) for p in h] for h in self.prev_hands]
             self.prev_hands = []
+            self._miss_count = 0
             return []
 
+        self._miss_count = 0
         smoothed_hands = []
         for i, hand in enumerate(hands):
             if not hand:
@@ -92,12 +105,15 @@ class HandDetectorEngine:
                 from mediapipe.tasks import python
                 from mediapipe.tasks.python import vision
 
+                # Lower detection/presence thresholds → catches partially occluded
+                # or rotated hands. Tracking confidence stays higher to avoid
+                # re-triggering the slower detection stage unnecessarily.
                 options = vision.HandLandmarkerOptions(
                     base_options=python.BaseOptions(model_asset_path=MODEL_PATH),
                     num_hands=2,
-                    min_hand_detection_confidence=0.5,
-                    min_hand_presence_confidence=0.5,
-                    min_tracking_confidence=0.5,
+                    min_hand_detection_confidence=0.35,
+                    min_hand_presence_confidence=0.35,
+                    min_tracking_confidence=0.55,
                 )
                 self.tasks_detector = vision.HandLandmarker.create_from_options(options)
                 self.mp_module = mp
@@ -115,8 +131,8 @@ class HandDetectorEngine:
                         static_image_mode=False,
                         max_num_hands=2,
                         model_complexity=1,
-                        min_detection_confidence=0.5,
-                        min_tracking_confidence=0.5,
+                        min_detection_confidence=0.35,
+                        min_tracking_confidence=0.55,
                     )
                     self.mode = "solutions"
                     print("[INFO] Engine Hand Tracking: MediaPipe Solutions (Legacy)")
@@ -598,7 +614,9 @@ class GeometryUtils:
         pip = np.array(pts[pip_idx])
         tip = np.array(pts[tip_idx])
 
-        return float(np.linalg.norm(tip - wrist)) > float(np.linalg.norm(pip - wrist)) * 1.08
+        # ponytail: 1.03 (was 1.08) — softer threshold so partially-bent fingers
+        # still register as extended.  Folded-flat fingers still fail (tip << pip).
+        return float(np.linalg.norm(tip - wrist)) > float(np.linalg.norm(pip - wrist)) * 1.03
 
     @staticmethod
     def is_fist_closed_pts(pts: List[Tuple[int, int]], threshold: float) -> bool:
