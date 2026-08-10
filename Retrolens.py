@@ -42,49 +42,89 @@ def ensure_model_exists() -> bool:
 
 
 class HandSmoother:
-    """Exponential Moving Average (EMA) position smoother with ghost-frame hold.
-    
-    When MediaPipe drops a frame, we hold the last known positions for up to
-    `ghost_frames` frames instead of instantly returning [] — this prevents
-    the portal from flickering every time a finger briefly occludes itself.
+    """Hand position tracker with EMA smoothing, velocity prediction, and ghost-frame hold.
+
+    - EMA smoothing eliminates per-frame jitter (alpha=0.45).
+    - When MediaPipe drops a detection, we extrapolate from velocity for up to
+      `ghost_frames` frames so the portal keeps moving in the right direction.
+    - Nearest-centroid matching prevents hand-ID swaps between frames.
     """
 
-    def __init__(self, alpha: float = 0.6, ghost_frames: int = 4) -> None:
+    def __init__(self, alpha: float = 0.45, ghost_frames: int = 12) -> None:
         self.alpha = alpha
         self.ghost_frames = ghost_frames
+        # Each entry: list of 21 (x, y) floats
         self.prev_hands: List[List[Tuple[float, float]]] = []
+        # Velocity per landmark per hand: dx, dy per frame
+        self.velocities: List[List[Tuple[float, float]]] = []
         self._miss_count: int = 0
+
+    @staticmethod
+    def _centroid(hand: list) -> Tuple[float, float]:
+        xs = [p[0] for p in hand]
+        ys = [p[1] for p in hand]
+        return (sum(xs) / len(xs), sum(ys) / len(ys))
+
+    def _match_hands(self, new_hands: List[List[Tuple[int, int]]]) -> List[List[Tuple[int, int]]]:
+        """Reorder new_hands to best match prev_hands by nearest centroid."""
+        if len(self.prev_hands) < 2 or len(new_hands) < 2:
+            return new_hands
+        prev_c = [self._centroid(h) for h in self.prev_hands]
+        new_c = [self._centroid(h) for h in new_hands]
+        # Try both orderings, pick the one with smallest total distance
+        d_same = sum(np.hypot(prev_c[i][0] - new_c[i][0], prev_c[i][1] - new_c[i][1]) for i in range(2))
+        d_swap = sum(np.hypot(prev_c[i][0] - new_c[1-i][0], prev_c[i][1] - new_c[1-i][1]) for i in range(2))
+        if d_swap < d_same:
+            return [new_hands[1], new_hands[0]]
+        return new_hands
 
     def smooth(self, hands: List[List[Tuple[int, int]]]) -> List[List[Tuple[int, int]]]:
         if not hands:
-            # Hold last known positions for a few frames before clearing
+            # Ghost frames: extrapolate from velocity instead of freezing
             if self.prev_hands and self._miss_count < self.ghost_frames:
                 self._miss_count += 1
-                return [[(int(p[0]), int(p[1])) for p in h] for h in self.prev_hands]
+                # ponytail: decay velocity each ghost frame to avoid runaway drift
+                decay = max(0.0, 1.0 - self._miss_count * 0.12)
+                predicted = []
+                for hi, hand in enumerate(self.prev_hands):
+                    vel = self.velocities[hi] if hi < len(self.velocities) else [(0.0, 0.0)] * len(hand)
+                    predicted.append([
+                        (p[0] + v[0] * decay, p[1] + v[1] * decay)
+                        for p, v in zip(hand, vel)
+                    ])
+                self.prev_hands = predicted
+                return [[(int(p[0]), int(p[1])) for p in h] for h in predicted]
             self.prev_hands = []
+            self.velocities = []
             self._miss_count = 0
             return []
 
         self._miss_count = 0
+        hands = self._match_hands(hands)
         smoothed_hands = []
+        new_velocities = []
+
         for i, hand in enumerate(hands):
             if not hand:
                 continue
             if i < len(self.prev_hands) and len(self.prev_hands[i]) == len(hand):
                 prev = self.prev_hands[i]
-                smoothed = [
-                    (
-                        int(self.alpha * curr[0] + (1 - self.alpha) * prev[j][0]),
-                        int(self.alpha * curr[1] + (1 - self.alpha) * prev[j][1]),
-                    )
-                    for j, curr in enumerate(hand)
-                ]
+                smoothed = []
+                vels = []
+                for j, curr in enumerate(hand):
+                    sx = self.alpha * curr[0] + (1 - self.alpha) * prev[j][0]
+                    sy = self.alpha * curr[1] + (1 - self.alpha) * prev[j][1]
+                    vels.append((sx - prev[j][0], sy - prev[j][1]))
+                    smoothed.append((int(sx), int(sy)))
+                new_velocities.append(vels)
             else:
                 smoothed = hand
+                new_velocities.append([(0.0, 0.0)] * len(hand))
 
             smoothed_hands.append(smoothed)
 
         self.prev_hands = [[(float(p[0]), float(p[1])) for p in h] for h in smoothed_hands]
+        self.velocities = new_velocities
         return smoothed_hands
 
 
@@ -105,15 +145,16 @@ class HandDetectorEngine:
                 from mediapipe.tasks import python
                 from mediapipe.tasks.python import vision
 
-                # Lower detection/presence thresholds → catches partially occluded
-                # or rotated hands. Tracking confidence stays higher to avoid
-                # re-triggering the slower detection stage unnecessarily.
+                # ponytail: aggressive detection thresholds — we'd rather get
+                # occasional false positives than lose a real hand mid-gesture.
+                # Tracking confidence low too, so MediaPipe keeps tracking
+                # instead of falling back to the slower detection path.
                 options = vision.HandLandmarkerOptions(
                     base_options=python.BaseOptions(model_asset_path=MODEL_PATH),
                     num_hands=2,
-                    min_hand_detection_confidence=0.35,
-                    min_hand_presence_confidence=0.35,
-                    min_tracking_confidence=0.55,
+                    min_hand_detection_confidence=0.3,
+                    min_hand_presence_confidence=0.3,
+                    min_tracking_confidence=0.35,
                 )
                 self.tasks_detector = vision.HandLandmarker.create_from_options(options)
                 self.mp_module = mp
@@ -131,8 +172,8 @@ class HandDetectorEngine:
                         static_image_mode=False,
                         max_num_hands=2,
                         model_complexity=1,
-                        min_detection_confidence=0.35,
-                        min_tracking_confidence=0.55,
+                        min_detection_confidence=0.3,
+                        min_tracking_confidence=0.35,
                     )
                     self.mode = "solutions"
                     print("[INFO] Engine Hand Tracking: MediaPipe Solutions (Legacy)")
@@ -786,7 +827,7 @@ class PortalProcessor:
         self.pinch_anim_frames = 0
 
         self.engine = HandDetectorEngine(cfg.frame_width, cfg.frame_height)
-        self.smoother = HandSmoother(alpha=0.5)
+        self.smoother = HandSmoother(alpha=0.45, ghost_frames=12)
 
     @property
     def current_filter_name(self) -> str:
