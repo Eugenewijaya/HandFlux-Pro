@@ -634,6 +634,148 @@ class FilterBank:
             return roi
         return cv2.GaussianBlur(roi, (25, 25), 0)
 
+    # --- EXOTIC THEME (8 Filters) ---
+    # These go beyond color grading — spatial distortion, generative art,
+    # hardware simulation. All vectorized for real-time ROI performance.
+
+    @staticmethod
+    def pixel_sort(roi: np.ndarray) -> np.ndarray:
+        """Glitch art: sort pixel rows by brightness in bands."""
+        h, w = roi.shape[:2]
+        if h < 4 or w < 4:
+            return roi
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        out = roi.copy()
+        band = max(1, h // 12)
+        for y0 in range(0, h, band * 2):
+            y1 = min(y0 + band, h)
+            strip = out[y0:y1].reshape(-1, 3)
+            lum = gray[y0:y1].ravel()
+            order = np.argsort(lum)
+            out[y0:y1] = strip[order].reshape(y1 - y0, w, 3)
+        return out
+
+    @staticmethod
+    def kaleidoscope(roi: np.ndarray) -> np.ndarray:
+        """4-way mirror kaleidoscope — mesmerizing symmetry."""
+        h, w = roi.shape[:2]
+        if h < 4 or w < 4:
+            return roi
+        qh, qw = h // 2, w // 2
+        quad = roi[:qh, :qw]
+        top = np.hstack([quad, cv2.flip(quad, 1)])
+        full = np.vstack([top, cv2.flip(top, 0)])
+        return cv2.resize(full, (w, h))
+
+    @staticmethod
+    def water_ripple(roi: np.ndarray) -> np.ndarray:
+        """Animated sine-wave displacement — like looking through water."""
+        h, w = roi.shape[:2]
+        if h < 8 or w < 8:
+            return roi
+        t = time.time() * 3.0
+        y_idx, x_idx = np.mgrid[0:h, 0:w].astype(np.float32)
+        map_x = x_idx + 6.0 * np.sin(2.0 * np.pi * y_idx / 45.0 + t)
+        map_y = y_idx + 6.0 * np.cos(2.0 * np.pi * x_idx / 45.0 + t)
+        return cv2.remap(roi, map_x, map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+
+    @staticmethod
+    def frosted_glass(roi: np.ndarray) -> np.ndarray:
+        """Random neighbor displacement — frosted window effect."""
+        h, w = roi.shape[:2]
+        if h < 8 or w < 8:
+            return roi
+        radius = 5
+        dy = np.random.randint(-radius, radius + 1, (h, w)).astype(np.float32)
+        dx = np.random.randint(-radius, radius + 1, (h, w)).astype(np.float32)
+        y_idx, x_idx = np.mgrid[0:h, 0:w].astype(np.float32)
+        map_x = np.clip(x_idx + dx, 0, w - 1)
+        map_y = np.clip(y_idx + dy, 0, h - 1)
+        return cv2.remap(roi, map_x, map_y, cv2.INTER_LINEAR)
+
+    @staticmethod
+    def crt_screen(roi: np.ndarray) -> np.ndarray:
+        """Full CRT simulation: barrel distortion + scanlines + chromatic aberration."""
+        h, w = roi.shape[:2]
+        if h < 16 or w < 16:
+            return roi
+        # Barrel distortion
+        cy, cx = h / 2.0, w / 2.0
+        y_idx, x_idx = np.mgrid[0:h, 0:w].astype(np.float32)
+        nx = (x_idx - cx) / cx
+        ny = (y_idx - cy) / cy
+        r2 = nx * nx + ny * ny
+        k = 0.15  # distortion strength
+        map_x = (nx * (1 + k * r2) * cx + cx)
+        map_y = (ny * (1 + k * r2) * cy + cy)
+        warped = cv2.remap(roi, map_x, map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+        # Chromatic aberration
+        b, g, r = cv2.split(warped)
+        r = np.roll(r, 2, axis=1)
+        b = np.roll(b, -2, axis=1)
+        out = cv2.merge([b, g, r])
+        # Scanlines + phosphor glow
+        out[::3, :] = (out[::3, :].astype(np.float32) * 0.65).astype(np.uint8)
+        # Slight green tint like old monitors
+        out[:, :, 1] = np.clip(out[:, :, 1].astype(np.int16) + 8, 0, 255).astype(np.uint8)
+        return out
+
+    @staticmethod
+    def aurora_gradient(roi: np.ndarray) -> np.ndarray:
+        """Map luminance to aurora borealis gradient (teal→green→purple→pink)."""
+        if roi is None or roi.size == 0:
+            return roi
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        # Build custom LUT: dark=deep purple, mid=teal/green, bright=pink
+        lut = np.zeros((256, 1, 3), dtype=np.uint8)
+        for i in range(256):
+            t = i / 255.0
+            if t < 0.33:
+                s = t / 0.33
+                lut[i, 0] = [int(80 * s), int(10 * s), int(120 + 40 * s)]  # deep purple
+            elif t < 0.66:
+                s = (t - 0.33) / 0.33
+                lut[i, 0] = [int(80 + 100 * s), int(10 + 200 * s), int(160 - 60 * s)]  # teal/green
+            else:
+                s = (t - 0.66) / 0.34
+                lut[i, 0] = [int(180 - 80 * s), int(210 - 100 * s), int(100 + 155 * s)]  # pink
+        return cv2.LUT(cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR), lut)
+
+    @staticmethod
+    def diamond_mosaic(roi: np.ndarray) -> np.ndarray:
+        """Rotated pixelation creating elegant diamond tessellation."""
+        h, w = roi.shape[:2]
+        if h < 8 or w < 8:
+            return roi
+        # Rotate 45°, pixelate, rotate back
+        center = (w // 2, h // 2)
+        M = cv2.getRotationMatrix2D(center, 45, 1.0)
+        rotated = cv2.warpAffine(roi, M, (w, h), borderMode=cv2.BORDER_REFLECT)
+        block = 10
+        small = cv2.resize(rotated, (max(1, w // block), max(1, h // block)), interpolation=cv2.INTER_AREA)
+        pixelated = cv2.resize(small, (w, h), interpolation=cv2.INTER_NEAREST)
+        M_inv = cv2.getRotationMatrix2D(center, -45, 1.0)
+        return cv2.warpAffine(pixelated, M_inv, (w, h), borderMode=cv2.BORDER_REFLECT)
+
+    @staticmethod
+    def dream_glow(roi: np.ndarray) -> np.ndarray:
+        """Ethereal bloom — bright areas bleed softly into surroundings."""
+        if roi is None or roi.size == 0:
+            return roi
+        h, w = roi.shape[:2]
+        if h < 8 or w < 8:
+            return roi
+        # Extract bright areas, blur them heavily, blend back
+        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+        _, _, v = cv2.split(hsv)
+        _, bright_mask = cv2.threshold(v, 160, 255, cv2.THRESH_BINARY)
+        bright = cv2.bitwise_and(roi, roi, mask=bright_mask)
+        k = max(3, (min(h, w) // 4) | 1)  # ensure odd kernel
+        glow = cv2.GaussianBlur(bright, (k, k), 0)
+        # Warm tint on glow
+        glow[:, :, 2] = np.clip(glow[:, :, 2].astype(np.int16) + 30, 0, 255).astype(np.uint8)
+        return cv2.addWeighted(roi, 0.7, glow, 0.5, 10)
+
 
 class GeometryUtils:
     @staticmethod
@@ -808,6 +950,16 @@ class PortalProcessor:
                 "duotone-cyan": FilterBank.duotone_cyan,
                 "cross-process": FilterBank.cross_process,
             },
+            "EXOTIC": {
+                "pixel-sort": FilterBank.pixel_sort,
+                "kaleidoscope": FilterBank.kaleidoscope,
+                "water-ripple": FilterBank.water_ripple,
+                "frosted-glass": FilterBank.frosted_glass,
+                "crt-screen": FilterBank.crt_screen,
+                "aurora-gradient": FilterBank.aurora_gradient,
+                "diamond-mosaic": FilterBank.diamond_mosaic,
+                "dream-glow": FilterBank.dream_glow,
+            },
         }
 
         # Flattened filters dict for fast access
@@ -855,7 +1007,7 @@ class PortalProcessor:
         self.toast_mgr.add(f"Auto-Cycle: {status}", "A", 2.2)
 
     def cycle_theme(self) -> None:
-        themes = ["ALL", "CINEMATIC", "ANIME", "CYBER", "ARTISTIC"]
+        themes = ["ALL", "CINEMATIC", "ANIME", "CYBER", "ARTISTIC", "EXOTIC"]
         curr_idx = themes.index(self.active_theme_name) if self.active_theme_name in themes else 0
         next_theme = themes[(curr_idx + 1) % len(themes)]
         self.active_theme_name = next_theme
