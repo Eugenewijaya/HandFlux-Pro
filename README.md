@@ -94,16 +94,16 @@ Aplikasi ini dilengkapi dengan mode **Auto-Cycle 2 Detik** (otomatis berganti fi
 
 3. **Jalankan Aplikasi:**
    ```bash
-   python Retrolens.py
+   python HandFlux.py
    ```
    *Atau dengan Auto-Cycle langsung aktif:*
    ```bash
-   python Retrolens.py --auto-cycle
+   python HandFlux.py --auto-cycle
    ```
 
 4. **Uji Coba Automated Test:**
    ```bash
-   python test_retrolens.py
+   python test_handflux.py
    ```
 
 ---

@@ -6,7 +6,7 @@ import shutil
 import unittest
 import numpy as np
 
-from Retrolens import FilterBank, GeometryUtils, PipelineConfig, PortalProcessor, ToastManager
+from HandFlux import FilterBank, GeometryUtils, PipelineConfig, PortalProcessor, ToastManager
 
 
 class TestFilterBank(unittest.TestCase):

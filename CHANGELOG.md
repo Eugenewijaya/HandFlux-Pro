@@ -1,4 +1,4 @@
-# Changelog - RetroLens Pro
+# Changelog - HandFlux Pro
 
 All notable changes to this project will be documented in this file.
 
@@ -15,4 +15,4 @@ All notable changes to this project will be documented in this file.
 - **Futuristic Glassmorphism HUD & Toast System**: Added real-time floating status badges and toast notifications.
 - **Real-time MP4 Video Recording**: Added video recording with live duration display (`R` key).
 - **One-Click Desktop Launcher**: Added automated PowerShell Desktop shortcut generator (`.lnk`) and `.bat` launcher.
-- **Automated Unit Test Suite**: Added 8 comprehensive test cases in `test_retrolens.py`.
+- **Automated Unit Test Suite**: Added 8 comprehensive test cases in `test_handflux.py`.
