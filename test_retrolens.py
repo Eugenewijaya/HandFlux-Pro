@@ -14,9 +14,9 @@ class TestFilterBank(unittest.TestCase):
         self.roi = np.zeros((100, 100, 3), dtype=np.uint8)
         self.roi[25:75, 25:75] = [200, 150, 100]
 
-    def test_all_25_filters(self):
+    def test_all_32_filters(self):
         filters = [
-            # Cinematic
+            # Cinematic (8)
             FilterBank.teal_orange,
             FilterBank.kodachrome,
             FilterBank.technicolor,
@@ -24,27 +24,34 @@ class TestFilterBank(unittest.TestCase):
             FilterBank.cinematic_warm,
             FilterBank.vignette_cinema,
             FilterBank.sepia,
-            # Anime & Cartoon
+            FilterBank.detail_enhance,
+            # Anime & Cartoon (8)
             FilterBank.anime_cel,
             FilterBank.manga_ink,
             FilterBank.cartoon_classic,
             FilterBank.pop_art,
             FilterBank.pencil_sketch,
+            FilterBank.pencil_color,
+            FilterBank.stylized_water,
             FilterBank.posterize,
-            # Cyber & Sci-Fi
+            # Cyber & Sci-Fi (8)
             FilterBank.cyberpunk,
             FilterBank.matrix,
             FilterBank.thermal,
             FilterBank.night_vision,
             FilterBank.hologram,
             FilterBank.glitch_rgb,
-            # Artistic & EFX
+            FilterBank.anaglyph_3d,
+            FilterBank.emboss_3d,
+            # Artistic & EFX (8)
             FilterBank.oil_paint,
             FilterBank.rainbow_wave,
             FilterBank.edge_neon,
             FilterBank.pixelate,
             FilterBank.vhs_tape,
             FilterBank.solarize,
+            FilterBank.duotone_cyan,
+            FilterBank.cross_process,
         ]
         for f in filters:
             out = f(self.roi)

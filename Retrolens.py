@@ -191,9 +191,9 @@ class PipelineConfig:
 
 
 class FilterBank:
-    """Collection of 25 real-time video filters categorized into Themes."""
+    """Collection of 32 real-time video filters categorized into Themes."""
 
-    # --- CINEMATIC THEME ---
+    # --- CINEMATIC THEME (8 Filters) ---
     @staticmethod
     def teal_orange(roi: np.ndarray) -> np.ndarray:
         if roi is None or roi.size == 0:
@@ -267,7 +267,19 @@ class FilterBank:
         res = cv2.transform(roi, kernel)
         return np.clip(res, 0, 255).astype(np.uint8)
 
-    # --- ANIME & CARTOON THEME ---
+    @staticmethod
+    def detail_enhance(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        h, w = roi.shape[:2]
+        if h < 20 or w < 20:
+            return roi
+        try:
+            return cv2.detailEnhance(roi, sigma_s=10, sigma_r=0.15)
+        except Exception:
+            return roi
+
+    # --- ANIME & CARTOON THEME (8 Filters) ---
     @staticmethod
     def anime_cel(roi: np.ndarray) -> np.ndarray:
         if roi is None or roi.size == 0:
@@ -323,13 +335,38 @@ class FilterBank:
         return cv2.cvtColor(sketch_img, cv2.COLOR_GRAY2BGR)
 
     @staticmethod
+    def pencil_color(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        h, w = roi.shape[:2]
+        if h < 20 or w < 20:
+            return roi
+        try:
+            _, color_sketch = cv2.pencilSketch(roi, sigma_s=15, sigma_r=0.07, shade_factor=0.04)
+            return color_sketch
+        except Exception:
+            return roi
+
+    @staticmethod
+    def stylized_water(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        h, w = roi.shape[:2]
+        if h < 20 or w < 20:
+            return roi
+        try:
+            return cv2.stylization(roi, sigma_s=15, sigma_r=0.3)
+        except Exception:
+            return roi
+
+    @staticmethod
     def posterize(roi: np.ndarray) -> np.ndarray:
         if roi is None or roi.size == 0:
             return roi
         n_colors = 4
         return np.clip((roi // (256 // n_colors)) * (256 // n_colors), 0, 255).astype(np.uint8)
 
-    # --- CYBER & SCI-FI THEME ---
+    # --- CYBER & SCI-FI THEME (8 Filters) ---
     @staticmethod
     def cyberpunk(roi: np.ndarray) -> np.ndarray:
         if roi is None or roi.size == 0:
@@ -397,7 +434,29 @@ class FilterBank:
             out[y : y + 1, :] = np.random.randint(0, 255, (1, w, 3), dtype=np.uint8)
         return out
 
-    # --- ARTISTIC & EFX THEME ---
+    @staticmethod
+    def anaglyph_3d(roi: np.ndarray) -> np.ndarray:
+        h, w = roi.shape[:2]
+        if h < 2 or w < 2:
+            return roi
+        b, g, r = cv2.split(roi)
+        r_shifted = np.roll(r, 8, axis=1)
+        b_shifted = np.roll(b, -8, axis=1)
+        return cv2.merge([b_shifted, g, r_shifted])
+
+    @staticmethod
+    def emboss_3d(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        kernel = np.array([
+            [-2, -1, 0],
+            [-1,  1, 1],
+            [ 0,  1, 2]
+        ])
+        embossed = cv2.filter2D(roi, -1, kernel) + 128
+        return np.clip(embossed, 0, 255).astype(np.uint8)
+
+    # --- ARTISTIC & EFX THEME (8 Filters) ---
     @staticmethod
     def oil_paint(roi: np.ndarray) -> np.ndarray:
         if roi is None or roi.size == 0:
@@ -457,6 +516,27 @@ class FilterBank:
         out = roi.copy()
         out[roi > threshold] = 255 - out[roi > threshold]
         return out
+
+    @staticmethod
+    def duotone_cyan(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        _, mask = cv2.threshold(gray, 120, 255, cv2.THRESH_BINARY)
+        out = np.zeros_like(roi)
+        out[mask == 255] = (255, 240, 0)
+        out[mask == 0] = (150, 0, 180)
+        return out
+
+    @staticmethod
+    def cross_process(roi: np.ndarray) -> np.ndarray:
+        if roi is None or roi.size == 0:
+            return roi
+        b, g, r = cv2.split(roi.astype(np.float32))
+        r = np.clip(r * 1.3, 0, 255)
+        g = np.clip(g * 1.1, 0, 255)
+        b = np.clip(b * 0.7 + 20, 0, 255)
+        return cv2.merge([b, g, r]).astype(np.uint8)
 
     @staticmethod
     def dual_tone(roi: np.ndarray) -> np.ndarray:
@@ -617,7 +697,7 @@ class PortalProcessor:
     def __init__(self, cfg: PipelineConfig):
         self.cfg = cfg
 
-        # 25 Filters mapped by Theme
+        # 32 Filters mapped by 4 Themes
         self.themed_filters: Dict[str, Dict[str, Callable[[np.ndarray], np.ndarray]]] = {
             "CINEMATIC": {
                 "teal-orange": FilterBank.teal_orange,
@@ -627,6 +707,7 @@ class PortalProcessor:
                 "cinematic-warm": FilterBank.cinematic_warm,
                 "vignette-cinema": FilterBank.vignette_cinema,
                 "sepia-vintage": FilterBank.sepia,
+                "detail-enhance": FilterBank.detail_enhance,
             },
             "ANIME": {
                 "anime-cel": FilterBank.anime_cel,
@@ -634,6 +715,8 @@ class PortalProcessor:
                 "cartoon-classic": FilterBank.cartoon_classic,
                 "pop-art": FilterBank.pop_art,
                 "pencil-sketch": FilterBank.pencil_sketch,
+                "pencil-color": FilterBank.pencil_color,
+                "stylized-water": FilterBank.stylized_water,
                 "posterize": FilterBank.posterize,
             },
             "CYBER": {
@@ -643,6 +726,8 @@ class PortalProcessor:
                 "night-vision": FilterBank.night_vision,
                 "hologram": FilterBank.hologram,
                 "glitch-rgb": FilterBank.glitch_rgb,
+                "anaglyph-3d": FilterBank.anaglyph_3d,
+                "emboss-3d": FilterBank.emboss_3d,
             },
             "ARTISTIC": {
                 "oil-paint": FilterBank.oil_paint,
@@ -651,6 +736,8 @@ class PortalProcessor:
                 "pixelate": FilterBank.pixelate,
                 "vhs-tape": FilterBank.vhs_tape,
                 "solarize": FilterBank.solarize,
+                "duotone-cyan": FilterBank.duotone_cyan,
+                "cross-process": FilterBank.cross_process,
             },
         }
 
@@ -767,7 +854,6 @@ class PortalProcessor:
         if not pts:
             return frame
 
-        # Handle 1-finger (circle portal)
         if len(pts) == 1:
             cx, cy = pts[0]
             r = 55
@@ -785,7 +871,6 @@ class PortalProcessor:
                 cv2.circle(frame, (cx, cy), r, (0, 240, 255), 2)
             return frame
 
-        # Handle 2-finger (pill/capsule portal)
         if len(pts) == 2:
             p1, p2 = pts[0], pts[1]
             thickness = 50
@@ -810,7 +895,6 @@ class PortalProcessor:
                 cv2.line(frame, p1, p2, (0, 240, 255), 2)
             return frame
 
-        # Handle 3+ fingers (polygon portal sorted CCW around centroid - NEVER FOLDS)
         pts_ccw = GeometryUtils.sort_polygon_vertices(pts)
         poly = np.array(pts_ccw, dtype=np.int32)
         x, y, w, h = cv2.boundingRect(poly)
@@ -872,7 +956,6 @@ class PortalProcessor:
         frame = cv2.resize(frame, (self.cfg.frame_width, self.cfg.frame_height))
         now = time.time()
 
-        # Handle Auto-Cycle Filter (Switch every 2 seconds if active)
         if self.auto_cycle_active:
             if now - self.last_auto_cycle_time > self.cfg.auto_cycle_interval:
                 self.cycle_filter(1)
@@ -917,19 +1000,16 @@ class PortalProcessor:
                 self.toggle_mode()
                 self.last_mode_toggle = now
 
-            # Portal ONLY opens when TWO hands are present
             if len(all_hand_tips) == 2:
                 t1, t2 = all_hand_tips[0], all_hand_tips[1]
                 if t1 and t2:
                     frame = self.render_portal(frame, t1 + t2, self.current_filter_name)
 
-        # Draw pinch ripple effect
         if self.pinch_anim_frames > 0 and self.pinch_anim_point is not None:
             r = (7 - self.pinch_anim_frames) * 6
             cv2.circle(frame, self.pinch_anim_point, r, (0, 240, 255), 2)
             self.pinch_anim_frames -= 1
 
-        # Track FPS
         elapsed = time.time() - start_t
         if elapsed > 0:
             self.fps_tracker.append(1.0 / elapsed)
@@ -937,18 +1017,15 @@ class PortalProcessor:
                 self.fps_tracker.pop(0)
         current_fps = int(np.mean(self.fps_tracker)) if self.fps_tracker else 30
 
-        # Draw HUD overlays if enabled
         if self.cfg.show_hud:
             self._draw_hud(frame, is_bowtie, current_fps)
             self.toast_mgr.render(frame)
 
-        # Handle Shutter Flash
         if self.shutter_flash_frames > 0:
             white_overlay = np.full_like(frame, 255)
             frame = cv2.addWeighted(frame, 0.4, white_overlay, 0.6, 0)
             self.shutter_flash_frames -= 1
 
-        # Record frame if active
         if self.is_recording and self.video_writer is not None:
             self.video_writer.write(frame)
 
@@ -986,7 +1063,7 @@ class PortalProcessor:
             cv2.rectangle(frame, (550, 14), (660, 38), (0, 255, 120), 1)
             cv2.putText(frame, "AUTO: 2s", (558, 31), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 255, 120), 1)
 
-        # FPS & Recording Badges (Right side)
+        # FPS & Recording Badges
         fps_str = f"{fps} FPS"
         cv2.putText(frame, fps_str, (w - 85, 32), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 120), 1)
 
@@ -996,7 +1073,7 @@ class PortalProcessor:
             cv2.circle(frame, (w - 175, 28), 6, (0, 0, 255), -1)
             cv2.putText(frame, rec_str, (w - 160, 32), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
-        # Glass Footer Box (Bottom bar)
+        # Glass Footer Box
         footer_sub = frame[h - 32:h, 0:w]
         glass_footer = cv2.addWeighted(footer_sub, 0.2, np.full_like(footer_sub, 10), 0.8, 0)
         cv2.line(glass_footer, (0, 0), (w, 0), (80, 80, 100), 1)
@@ -1055,7 +1132,7 @@ def main() -> None:
 
     cv2.namedWindow("HandFlux Pro Engine", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("HandFlux Pro Engine", cfg.frame_width, cfg.frame_height)
-    print("[INFO] HandFlux Pro berjalan (25 Filters, Auto-Cycle Mode Available).")
+    print("[INFO] HandFlux Pro berjalan (32 Filters, 4 Themes, Auto-Cycle Mode Available).")
     print("[INFO] Kontrol: [A] Auto-Cycle 2s | [T] Switch Theme | [S] Screenshot | [1-5 / F] Jari | [Q] Keluar")
 
     try:

@@ -24,18 +24,22 @@
 ## 🇮🇩 Bahasa Indonesia
 
 ### 📖 Tentang HandFlux Pro
-**HandFlux Pro** adalah aplikasi *Computer Vision* interaktif yang mengubah gerakan tangan Anda menjadi portal efek visual real-time. Cukup bentangkan dua tangan di depan webcam untuk memproyeksikan portal efek futuristik dari **25+ filter visual premium** yang dikategorikan ke dalam 4 tema utama (*Cinematic, Anime, Cyberpunk, Artistic*).
+**HandFlux Pro** adalah aplikasi *Computer Vision* interaktif yang mengubah gerakan tangan Anda menjadi portal efek visual real-time. Cukup bentangkan dua tangan di depan webcam untuk memproyeksikan portal efek futuristik dari **32 filter visual premium** yang dikategorikan ke dalam 4 tema utama (*Cinematic, Anime, Cyberpunk, Artistic*).
 
 Aplikasi ini dilengkapi dengan mode **Auto-Cycle 2 Detik** (otomatis berganti filter tanpa perlu gesture cubit), pemilihan tema filter dinamis, deteksi jari berdiri yang presisi, serta pengurutan poligon anti-kelipet.
 
 ---
 
-### 🎨 25 Filter Visual Berdasarkan Tema
+### 🎨 32 Filter Visual Berdasarkan Tema
 
-1. **🎬 Tema CINEMATIC & FILM**: `Teal-Orange`, `Kodachrome`, `Technicolor`, `Noir-Film`, `Cinematic-Warm`, `Vignette-Cinema`, `Sepia`.
-2. **⛩️ Tema ANIME & CARTOON**: `Anime-Cel`, `Manga-Ink`, `Cartoon-Classic`, `Pop-Art`, `Pencil-Sketch`, `Posterize`.
-3. **⚡ Tema CYBER & SCI-FI**: `Cyberpunk`, `Matrix`, `Thermal`, `Night-Vision`, `Hologram`, `Glitch-RGB`.
-4. **🎨 Tema ARTISTIC & EFX**: `Oil-Paint`, `Rainbow-Wave`, `Edge-Neon`, `Pixelate`, `VHS-Tape`, `Solarize`.
+1. **🎬 Tema CINEMATIC & FILM (8 Filter)**:
+   `Teal-Orange`, `Kodachrome`, `Technicolor`, `Noir-Film`, `Cinematic-Warm`, `Vignette-Cinema`, `Sepia-Vintage`, `Detail-Enhance (HDR)`.
+2. **⛩️ Tema ANIME & CARTOON (8 Filter)**:
+   `Anime-Cel`, `Manga-Ink`, `Cartoon-Classic`, `Pop-Art`, `Pencil-Sketch`, `Pencil-Color`, `Stylized-Water`, `Posterize`.
+3. **⚡ Tema CYBER & SCI-FI (8 Filter)**:
+   `Cyberpunk`, `Matrix`, `Thermal`, `Night-Vision`, `Hologram`, `Glitch-RGB`, `Anaglyph-3D`, `Emboss-3D`.
+4. **🎨 Tema ARTISTIC & EFX (8 Filter)**:
+   `Oil-Paint`, `Rainbow-Wave`, `Edge-Neon`, `Pixelate`, `VHS-Tape`, `Solarize`, `Duotone-Cyan`, `Cross-Process`.
 
 ---
 
@@ -47,7 +51,7 @@ Aplikasi ini dilengkapi dengan mode **Auto-Cycle 2 Detik** (otomatis berganti fi
 | **🏷️ Theme Category Switcher (`T`)** | Pilih kategori tema khusus (Cinematic, Anime, Cyber, Artistic) atau jalankan seluruh filter secara acak. |
 | **🖐️ Smart Standing Finger Filter** | Hanya mendeteksi dan menggunakan jari yang **berdiri tegak**. Jari yang dilipat ke telapak tangan otomatis diabaikan! |
 | **📐 CCW Polar Angle Sorting** | Poligon portal diurutkan berlawanan arah jarum jam secara matematis. **Portal 100% TIDAK AKAN KELIPET ATAU MENYILANG**! |
-| **🎨 25 Filter Visual Premium** | Koleksi 25 filter spektakuler dari gaya film sinematik, anime cel shading, cyberpunk neon, hingga efek lukisan minyak. |
+| **🎨 32 Filter Visual Premium** | Koleksi 32 filter spektakuler dari gaya film sinematik, anime cel shading, cyberpunk neon, lukisan air, hingga efek 3D stereo. |
 | **✨ EMA Landmark Smoothing** | Diterapkan *Exponential Moving Average (alpha=0.5)* untuk menyaring getaran piksel (*jitter*). |
 | **🖥️ Glassmorphic HUD & Toasts** | Tampilan antarmuka transparan futuristik dilengkapi sistem notifikasi mengambang (*floating toast system*). |
 | **🖱️ One-Click Desktop Launcher** | Dilengkapi file batch & shortcut instan di Desktop Windows. |
@@ -111,16 +115,16 @@ Aplikasi ini dilengkapi dengan mode **Auto-Cycle 2 Detik** (otomatis berganti fi
 ### 📖 About HandFlux Pro
 **HandFlux Pro** is an interactive Computer Vision application powered by Python, OpenCV, and MediaPipe Tasks API. It dynamically transforms your hand gestures into interactive visual filter portals in real-time.
 
-Featuring **25 premium visual filters** categorized into 4 themes (*Cinematic, Anime, Cyberpunk, Artistic*) and an **Auto-Cycle 2s Mode** that automatically rotates filters every 2 seconds without requiring gestures.
+Featuring **32 premium visual filters** categorized into 4 themes (*Cinematic, Anime, Cyberpunk, Artistic*) and an **Auto-Cycle 2s Mode** that automatically rotates filters every 2 seconds without requiring gestures.
 
 ---
 
-### 🎨 25 Themed Visual Filters
+### 🎨 32 Themed Visual Filters
 
-- **🎬 CINEMATIC**: `Teal-Orange`, `Kodachrome`, `Technicolor`, `Noir-Film`, `Cinematic-Warm`, `Vignette-Cinema`, `Sepia`.
-- **⛩️ ANIME & CARTOON**: `Anime-Cel`, `Manga-Ink`, `Cartoon-Classic`, `Pop-Art`, `Pencil-Sketch`, `Posterize`.
-- **⚡ CYBER & SCI-FI**: `Cyberpunk`, `Matrix`, `Thermal`, `Night-Vision`, `Hologram`, `Glitch-RGB`.
-- **🎨 ARTISTIC & EFX**: `Oil-Paint`, `Rainbow-Wave`, `Edge-Neon`, `Pixelate`, `VHS-Tape`, `Solarize`.
+- **🎬 CINEMATIC**: `Teal-Orange`, `Kodachrome`, `Technicolor`, `Noir-Film`, `Cinematic-Warm`, `Vignette-Cinema`, `Sepia-Vintage`, `Detail-Enhance (HDR)`.
+- **⛩️ ANIME & CARTOON**: `Anime-Cel`, `Manga-Ink`, `Cartoon-Classic`, `Pop-Art`, `Pencil-Sketch`, `Pencil-Color`, `Stylized-Water`, `Posterize`.
+- **⚡ CYBER & SCI-FI**: `Cyberpunk`, `Matrix`, `Thermal`, `Night-Vision`, `Hologram`, `Glitch-RGB`, `Anaglyph-3D`, `Emboss-3D`.
+- **🎨 ARTISTIC & EFX**: `Oil-Paint`, `Rainbow-Wave`, `Edge-Neon`, `Pixelate`, `VHS-Tape`, `Solarize`, `Duotone-Cyan`, `Cross-Process`.
 
 ---
 
@@ -143,16 +147,16 @@ Featuring **25 premium visual filters** categorized into 4 themes (*Cinematic, A
 ## 🇨🇳 中文 (Chinese)
 
 ### 📖 关于 HandFlux Pro
-**HandFlux Pro** 是一款基于 Python、OpenCV 和 MediaPipe Tasks API 开发的互动式计算机视觉应用。它包含 **25 种主题滤镜**（电影感、动漫风、赛博朋克、艺术涂鸦）以及 **2 秒自动循环模式**。
+**HandFlux Pro** 是一款基于 Python、OpenCV 和 MediaPipe Tasks API 开发的互动式计算机视觉应用。它包含 **32 种主题滤镜**（电影感、动漫风、赛博朋克、艺术涂鸦）以及 **2 秒自动循环模式**。
 
 ---
 
-### 🎨 25 种主题滤镜
+### 🎨 32 种主题滤镜
 
-- **🎬 电影感 (CINEMATIC)**: 好莱坞橙青 (Teal-Orange)、柯达胶卷 (Kodachrome)、彩色印相 (Technicolor)、黑白电影 (Noir-Film)、暖阳 (Warm)、暗角 (Vignette)、复古褐色 (Sepia)。
-- **⛩️ 动漫与卡通 (ANIME)**: 动漫赛璐珞 (Anime-Cel)、日漫水墨 (Manga-Ink)、经典卡通 (Cartoon)、波普艺术 (Pop-Art)、铅笔素描 (Pencil-Sketch)、海报化 (Posterize)。
-- **⚡ 赛博与科影 (CYBER)**: 赛博朋克 (Cyberpunk)、黑客帝国 (Matrix)、红外热成像 (Thermal)、夜视仪 (Night-Vision)、全息投影 (Hologram)、RGB 故障 (Glitch-RGB)。
-- **🎨 艺术与特效 (ARTISTIC)**: 油画 (Oil-Paint)、彩虹波浪 (Rainbow-Wave)、霓虹边缘 (Edge-Neon)、像素化 (Pixelate)、VHS 录像带 (VHS-Tape)、曝光过度 (Solarize)。
+- **🎬 电影感 (CINEMATIC)**: 好莱坞橙青 (Teal-Orange)、柯达胶卷 (Kodachrome)、彩色印相 (Technicolor)、黑白电影 (Noir-Film)、暖阳 (Warm)、暗角 (Vignette)、复古褐色 (Sepia)、HDR 细节增强 (Detail-Enhance)。
+- **⛩️ 动漫与卡通 (ANIME)**: 动漫赛璐珞 (Anime-Cel)、日漫水墨 (Manga-Ink)、经典卡通 (Cartoon)、波普艺术 (Pop-Art)、铅笔素描 (Pencil-Sketch)、彩色铅笔 (Pencil-Color)、水彩画 (Stylized-Water)、海报化 (Posterize)。
+- **⚡ 赛博与科影 (CYBER)**: 赛博朋克 (Cyberpunk)、黑客帝国 (Matrix)、红外热成像 (Thermal)、夜视仪 (Night-Vision)、全息投影 (Hologram)、RGB 故障 (Glitch-RGB)、3D 红蓝立体 (Anaglyph-3D)、3D 浮雕 (Emboss-3D)。
+- **🎨 艺术与特效 (ARTISTIC)**: 油画 (Oil-Paint)、彩虹波浪 (Rainbow-Wave)、霓虹边缘 (Edge-Neon)、像素化 (Pixelate)、VHS 录像带 (VHS-Tape)、曝光过度 (Solarize)、双色调青紫 (Duotone-Cyan)、LOMO 交叉冲洗 (Cross-Process)。
 
 ---
 
