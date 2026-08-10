@@ -28,18 +28,46 @@ HAND_CONNECTIONS = [
 ]
 
 
-def ensure_model_exists() -> bool:
-    if not os.path.exists(MODEL_PATH):
-        try:
-            import urllib.request
-            print("[INFO] Mengunduh model deteksi tangan MediaPipe (hand_landmarker.task)...")
-            urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
-            print("[INFO] Model berhasil diunduh!")
-            return True
-        except Exception as e:
-            print(f"[WARNING] Gagal mengunduh model: {e}")
-            return False
-    return True
+def open_robust_camera(target_w: int = 960, target_h: int = 540) -> Optional[cv2.VideoCapture]:
+    """
+    Robustly detects & opens available webcam on Windows/Linux/macOS.
+    Tries indices 0..3 with DirectShow (CAP_DSHOW) and CAP_ANY.
+    Ensures standard 30 FPS mode to prevent MSMF driver deadlock & frame drops.
+    """
+    print("[INFO] Detecting available camera devices for Naruto Jutsu...")
+    backends = []
+    if sys.platform.startswith("win"):
+        backends = [cv2.CAP_DSHOW, cv2.CAP_ANY]
+    else:
+        backends = [cv2.CAP_ANY]
+
+    for idx in range(4):
+        for backend in backends:
+            try:
+                cap = cv2.VideoCapture(idx, backend)
+                if cap.isOpened():
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, target_w)
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, target_h)
+                    cap.set(cv2.CAP_PROP_FPS, 30)
+
+                    # Flush buffer with 3 warm-up reads
+                    success_reads = 0
+                    for _ in range(3):
+                        ret, test_frame = cap.read()
+                        if ret and test_frame is not None and test_frame.size > 0:
+                            success_reads += 1
+                        time.sleep(0.02)
+
+                    if success_reads > 0:
+                        print(f"[SUCCESS] Camera detected at Index {idx} (Backend: {backend})!")
+                        return cap
+                    else:
+                        cap.release()
+            except Exception:
+                pass
+
+    print("[ERROR] No working camera device detected!")
+    return None
 
 
 class HandSmoother:
@@ -613,14 +641,11 @@ def main() -> None:
     fireball = FireballEffect()
     shadow_clone = ShadowCloneEffect()
 
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW if sys.platform.startswith("win") else cv2.CAP_ANY)
-    if not cap.isOpened():
-        print("[ERROR] Gagal membuka kamera!")
+    cap = open_robust_camera(target_w=w, target_h=h)
+    if cap is None:
+        print("[FATAL] Gagal membuka kamera! Pastikan kamera terhubung & tidak dipakai aplikasi lain.")
+        input("Tekan Enter untuk keluar...")
         return
-
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
-    cap.set(cv2.CAP_PROP_FPS, 120)
 
     cv2.namedWindow("Naruto Ninjutsu Camera", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("Naruto Ninjutsu Camera", w, h)

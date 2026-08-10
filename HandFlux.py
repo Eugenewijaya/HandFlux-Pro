@@ -1317,7 +1317,7 @@ def main() -> None:
     parser.add_argument("--camera", type=int, default=0, help="Camera index (default: 0)")
     parser.add_argument("--width", type=int, default=960, help="Frame width (default: 960)")
     parser.add_argument("--height", type=int, default=540, help="Frame height (default: 540)")
-    parser.add_argument("--fps", type=int, default=120, help="Target FPS (default: 120)")
+    parser.add_argument("--fps", type=int, default=30, help="Target FPS (default: 30)")
     parser.add_argument("--fingers", type=int, default=5, choices=[1, 2, 3, 4, 5], help="Number of active portal fingers (1-5)")
     parser.add_argument("--auto-cycle", action="store_true", help="Start with Auto-Cycle mode enabled (switches filter every 2s)")
     parser.add_argument("--gesture-snap", action="store_true", help="Enable peace sign auto-screenshot gesture by default")
@@ -1338,26 +1338,34 @@ def main() -> None:
         processor.auto_cycle_active = True
 
     cap = None
-
     for cam_index in [cfg.cam_index, 0, 1, 2, 3]:
-        if sys.platform.startswith("win"):
-            cap = cv2.VideoCapture(cam_index, cv2.CAP_DSHOW)
-        else:
-            cap = cv2.VideoCapture(cam_index)
+        for backend in ([cv2.CAP_DSHOW, cv2.CAP_ANY] if sys.platform.startswith("win") else [cv2.CAP_ANY]):
+            try:
+                cap = cv2.VideoCapture(cam_index, backend)
+                if cap.isOpened():
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, cfg.frame_width)
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cfg.frame_height)
+                    cap.set(cv2.CAP_PROP_FPS, cfg.target_fps)
+                    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
-        if cap.isOpened():
-            print(f"[INFO] Kamera terdeteksi pada indeks {cam_index}")
+                    # Warm-up read
+                    ret, test_f = cap.read()
+                    if ret and test_f is not None and test_f.size > 0:
+                        print(f"[INFO] Kamera terdeteksi pada indeks {cam_index} (Backend: {backend})")
+                        break
+                    else:
+                        cap.release()
+                        cap = None
+            except Exception:
+                if cap:
+                    cap.release()
+                    cap = None
+        if cap and cap.isOpened():
             break
-        cap.release()
 
     if cap is None or not cap.isOpened():
         print("[ERROR] Kamera tidak terdeteksi! Silakan hubungkan webcam.")
         return
-
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, cfg.frame_width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cfg.frame_height)
-    cap.set(cv2.CAP_PROP_FPS, cfg.target_fps)
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
     cv2.namedWindow("HandFlux Pro Engine", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("HandFlux Pro Engine", cfg.frame_width, cfg.frame_height)
