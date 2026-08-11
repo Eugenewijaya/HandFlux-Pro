@@ -14,6 +14,10 @@ deps/
 *.task
 hand_landmarker.task
 
+# Foto Kita Blur — excluded from repo
+foto_kita_blur.py
+Run Foto Kita Blur.bat
+
 # Captures & Output
 captures/
 test_captures/
