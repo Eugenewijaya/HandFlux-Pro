@@ -5,7 +5,7 @@
 #### *Y2K Pop-Art & Indie Sleaze High-Fashion Edition*
 
 <p align="center">
-  <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZtYnhuZmpubWxkcTNpaTR5ZnptZnJndmtwNDdxcWRlMGdncXZmdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/13l74g92vuYuUU/giphy.gif" alt="HandFlux Pro Anime Gesture" width="480"/>
+  <img src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3d3FyYW8xazRvZjdkM2Nka2d0aGllcHduMHhxdDRoaHo5bGh5aHFzciZlcD12MV9naWZzX3NlYXJjaCZjdD1n/QtZSl6mcqfmvCBI2cb/giphy.gif" alt="HandFlux Pro" width="360"/>
 </p>
 
 [![Version](https://img.shields.io/badge/Version-3.0.0-FF6B9D?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Eugenewijaya/HandFlux-Pro)
@@ -36,7 +36,7 @@ Portal visual dengan **18 filter premium** (Y2K Pop-Art, Special FX, Cyber, Tact
 ### 🎨 18 Special Effects Filter & Kategori Tema (`HandFlux.py`)
 
 <p align="center">
-  <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNXA3YzQzM3E1aTV1cGZocm0xOGdydnJyMXY1aDZscWhsN3g3eHNtbiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/C21GGDOpKT6Z4VuXyn/giphy.gif" alt="Anime Domain Expansion Portal" width="480"/>
+  <img src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3bjZvNTdmcHhydmpmeWhpYXUwcnhlbDljdmhlaHhsZW4ybDd4d2U0biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/V1Ex1Pv5VM8z7qL51z/giphy.gif" alt="HandFlux Visual Effect" width="360"/>
 </p>
 
 1. **📸 Tema Y2K POP-ART (5 Filter)**:
@@ -59,7 +59,7 @@ Portal visual dengan **18 filter premium** (Y2K Pop-Art, Special FX, Cyber, Tact
 ### 🔥 Keunggulan Utama HandFlux Pro v3.0.0
 
 <p align="center">
-  <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbzR0MHg3aW5jYWhwbmpzb2RtbHRocmlrdmpjcDdsOHo3Nm8yaWRscSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/4lu5FuhtrbaFi/giphy.gif" alt="Anime Hand Sign Gesture Tracking" width="480"/>
+  <img src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3bjZvNTdmcHhydmpmeWhpYXUwcnhlbDljdmhlaHhsZW4ybDd4d2U0biZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ZolyYstgSZoq3uiLmP/giphy.gif" alt="HandFlux Gesture Portal" width="360"/>
 </p>
 
 | Fitur & Keunggulan | Kenapa Ini Lebih Keren? 🚀 |
@@ -112,6 +112,10 @@ Portal visual dengan **18 filter premium** (Y2K Pop-Art, Special FX, Cyber, Tact
    ```
 
 ---
+
+<p align="center">
+  <img src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3a2R1dnhlYzdlOGp5MWdpMG5xODgxNG1oNmJxdHBmY3UyM214Nm8ydiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/Tl45tTeIPOz4vj4qYw/giphy.gif" alt="HandFlux Pro Filter Demo" width="360"/>
+</p>
 
 <br/>
 
