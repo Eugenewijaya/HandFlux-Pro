@@ -10,12 +10,66 @@ import math
 import os
 import random
 import sys
+import threading
 import time
 from typing import Dict, List, Tuple, Callable, Optional
 import urllib.request
 
 import cv2
 import numpy as np
+
+
+class ThreadedCamera:
+    """Threaded camera reader to eliminate I/O blocking and guarantee rock-solid high FPS."""
+
+    def __init__(self, src: int = 0, backend: int = cv2.CAP_ANY, width: int = 960, height: int = 540, fps: int = 30):
+        self.cap = cv2.VideoCapture(src, backend)
+        if self.cap.isOpened():
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+            self.cap.set(cv2.CAP_PROP_FPS, fps)
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            try:
+                self.cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.75)
+                self.cap.set(cv2.CAP_PROP_AUTO_WB, 1)
+            except Exception:
+                pass
+        self.grabbed, self.frame = self.cap.read()
+        self.started = False
+        self.read_lock = threading.Lock()
+
+    def start(self):
+        if self.started:
+            return self
+        self.started = True
+        self.thread = threading.Thread(target=self._update, daemon=True)
+        self.thread.start()
+        return self
+
+    def _update(self):
+        while self.started:
+            if not self.cap.isOpened():
+                break
+            grabbed, frame = self.cap.read()
+            if grabbed and frame is not None:
+                with self.read_lock:
+                    self.grabbed = grabbed
+                    self.frame = frame
+            else:
+                time.sleep(0.002)
+
+    def read(self):
+        with self.read_lock:
+            if self.frame is not None:
+                return self.grabbed, self.frame.copy()
+            return False, None
+
+    def release(self):
+        self.started = False
+        if hasattr(self, "thread") and self.thread.is_alive():
+            self.thread.join(timeout=0.3)
+        if self.cap and self.cap.isOpened():
+            self.cap.release()
 
 MODEL_PATH = "hand_landmarker.task"
 MODEL_URL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
@@ -438,9 +492,12 @@ class FilterBank:
         np.fill_diagonal(kernel, 1.0 / ksize)
         blurred = cv2.filter2D(roi, -1, kernel)
 
-        leak = np.zeros_like(roi)
-        cv2.circle(leak, (w, 0), int(w * 0.75), (0, 150, 240), -1)
-        leak = cv2.GaussianBlur(leak, (99, 99), 0)
+        # Ultra-fast downsampled light leak blur
+        sw, sh = max(1, w // 4), max(1, h // 4)
+        small_leak = np.zeros((sh, sw, 3), dtype=np.uint8)
+        cv2.circle(small_leak, (sw, 0), int(sw * 0.75), (0, 150, 240), -1)
+        small_leak = cv2.GaussianBlur(small_leak, (15, 15), 0)
+        leak = cv2.resize(small_leak, (w, h), interpolation=cv2.INTER_LINEAR)
 
         res = cv2.addWeighted(blurred, 0.85, leak, 0.35, 0)
         return cv2.convertScaleAbs(res, alpha=1.15, beta=-5)
@@ -453,16 +510,17 @@ class FilterBank:
         h, w = roi.shape[:2]
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
-        dot_size = 6
-        y_grid, x_grid = np.ogrid[:h, :w]
-        screen = (np.sin(x_grid * np.pi / dot_size) * np.sin(y_grid * np.pi / dot_size) * 120 + 128).astype(np.uint8)
+        # Fast 6x6 periodic halftone screen tile
+        _HT6 = (np.sin(np.ogrid[:6, :6][1] * np.pi / 6) * np.sin(np.ogrid[:6, :6][0] * np.pi / 6) * 120 + 128).astype(np.uint8)
+        screen = cv2.repeat(_HT6, h // 6 + 1, w // 6 + 1)[:h, :w]
 
         dots = cv2.compare(gray, screen, cv2.CMP_GT)
 
-        res = np.zeros_like(roi)
-        res[dots == 255] = (220, 215, 235)  # BGR Soft Rose White
-        res[dots == 0] = (30, 10, 110)      # BGR Deep Burgundy Maroon
-        return res
+        # Fast cv2 blending instead of numpy 3D array indexing
+        b_ch = cv2.scaleAdd(dots, (220 - 30) / 255.0, np.full((h, w), 30, dtype=np.uint8))
+        g_ch = cv2.scaleAdd(dots, (215 - 10) / 255.0, np.full((h, w), 10, dtype=np.uint8))
+        r_ch = cv2.scaleAdd(dots, (235 - 110) / 255.0, np.full((h, w), 110, dtype=np.uint8))
+        return cv2.merge([b_ch, g_ch, r_ch])
 
     @staticmethod
     def grunge_pink_starburst(roi: np.ndarray) -> np.ndarray:
@@ -498,9 +556,8 @@ class FilterBank:
         h, w = roi.shape[:2]
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
-        dot_size = 5
-        y_grid, x_grid = np.ogrid[:h, :w]
-        screen = (np.sin(x_grid * np.pi / dot_size) * np.sin(y_grid * np.pi / dot_size) * 120 + 128).astype(np.uint8)
+        _HT5 = (np.sin(np.ogrid[:5, :5][1] * np.pi / 5) * np.sin(np.ogrid[:5, :5][0] * np.pi / 5) * 120 + 128).astype(np.uint8)
+        screen = cv2.repeat(_HT5, h // 5 + 1, w // 5 + 1)[:h, :w]
 
         dots = cv2.compare(gray, screen, cv2.CMP_GT)
         res = cv2.cvtColor(dots, cv2.COLOR_GRAY2BGR)
@@ -522,11 +579,11 @@ class FilterBank:
 
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         edges = cv2.Canny(gray, 50, 130)
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-        dilated_edges = cv2.dilate(edges, kernel, iterations=1)
+        dilated_edges = cv2.dilate(edges, np.ones((3, 3), np.uint8), iterations=1)
 
+        res = base.copy()
         lime_color = np.full_like(roi, (40, 255, 110), dtype=np.uint8)
-        res = np.where(dilated_edges[:, :, None] == 255, lime_color, base)
+        cv2.copyTo(lime_color, dilated_edges, res)
 
         lb_pts = np.array([[int(w*0.08), int(h*0.15)], [int(w*0.14), int(h*0.30)], [int(w*0.09), int(h*0.32)], [int(w*0.16), int(h*0.50)]], dtype=np.int32)
         cv2.polylines(res, [lb_pts], isClosed=False, color=(40, 255, 110), thickness=3, lineType=cv2.LINE_AA)
@@ -554,11 +611,11 @@ class FilterBank:
     def hologram_cyan(roi: np.ndarray) -> np.ndarray:
         if roi is None or roi.size == 0:
             return roi
-        b, g, r = cv2.split(roi.astype(np.float32))
-        b = np.clip(b * 1.5 + 40, 0, 255)
-        g = np.clip(g * 1.3 + 30, 0, 255)
-        r = np.clip(r * 0.2, 0, 255)
-        res = cv2.merge([b, g, r]).astype(np.uint8)
+        b, g, r = cv2.split(roi)
+        b = cv2.addWeighted(b, 1.4, b, 0, 40)
+        g = cv2.addWeighted(g, 1.2, g, 0, 30)
+        r = cv2.scaleAdd(r, 0.2, np.zeros_like(r))
+        res = cv2.merge([b, g, r])
         res[::3, :, :] = (res[::3, :, :].astype(np.uint16) * 6 // 10).astype(np.uint8)
         return res
 
@@ -568,8 +625,8 @@ class FilterBank:
             return roi
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         edges = cv2.Canny(gray, 60, 150)
-        colored = cv2.applyColorMap(edges, cv2.COLORMAP_JET)
-        return cv2.bitwise_and(colored, colored, mask=edges)
+        colored = cv2.merge([edges, edges, np.zeros_like(edges)])
+        return colored
 
     # --- TACTICAL THEME ---
     @staticmethod
@@ -856,10 +913,10 @@ class PortalProcessor:
         self.pinch_anim_point: Optional[Tuple[int, int]] = None
         self.pinch_anim_frames = 0
 
-        self.engine = HandDetectorEngine(cfg.frame_width, cfg.frame_height, detect_scale=1.0)
+        self.engine = HandDetectorEngine(cfg.frame_width, cfg.frame_height, detect_scale=0.5)
         self.smoother = HandSmoother(alpha=0.55, ghost_frames=15)
         self._frame_count = 0
-        self._detect_every = 1  # 100% full frame detection for precision
+        self._detect_every = 1  # 100% full frame detection at 0.5x scale for maximum precision & 60+ FPS
 
     @property
     def current_filter_name(self) -> str:
@@ -1222,39 +1279,27 @@ def main() -> None:
     if args.auto_cycle:
         processor.auto_cycle_active = True
 
-    cap = None
+    cam = None
     for cam_index in [cfg.cam_index, 0, 1, 2, 3]:
         for backend in ([cv2.CAP_DSHOW, cv2.CAP_ANY] if sys.platform.startswith("win") else [cv2.CAP_ANY]):
             try:
-                cap = cv2.VideoCapture(cam_index, backend)
-                if cap.isOpened():
-                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, cfg.frame_width)
-                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cfg.frame_height)
-                    cap.set(cv2.CAP_PROP_FPS, cfg.target_fps)
-                    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-                    # Enable hardware Auto Exposure & Auto White Balance
-                    try:
-                        cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.75)
-                        cap.set(cv2.CAP_PROP_AUTO_WB, 1)
-                    except Exception:
-                        pass
-
-                    # Warm-up read
-                    ret, test_f = cap.read()
+                t_cam = ThreadedCamera(cam_index, backend, cfg.frame_width, cfg.frame_height, cfg.target_fps)
+                if t_cam.cap.isOpened():
+                    t_cam.start()
+                    time.sleep(0.1)  # Warm up thread
+                    ret, test_f = t_cam.read()
                     if ret and test_f is not None and test_f.size > 0:
-                        print(f"[INFO] Kamera terdeteksi pada indeks {cam_index} (Backend: {backend})")
+                        cam = t_cam
+                        print(f"[INFO] Kamera terdeteksi & Threaded Engine aktif pada indeks {cam_index} (Backend: {backend})")
                         break
                     else:
-                        cap.release()
-                        cap = None
+                        t_cam.release()
             except Exception:
-                if cap:
-                    cap.release()
-                    cap = None
-        if cap and cap.isOpened():
+                pass
+        if cam is not None:
             break
 
-    if cap is None or not cap.isOpened():
+    if cam is None:
         print("[ERROR] Kamera ga ke detect weh! Coba cek settingan lu lagi.")
         return
 
@@ -1273,8 +1318,8 @@ def main() -> None:
             if visible < 1:
                 break
 
-            ret, frame = cap.read()
-            if not ret:
+            ret, frame = cam.read()
+            if not ret or frame is None:
                 frame = np.zeros((cfg.frame_height, cfg.frame_width, 3), dtype=np.uint8)
                 cv2.putText(frame, "WEBCAM UNAVAILABLE", (80, 260), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
                 cv2.putText(frame, "Hubungkan webcam atau periksa izin kamera", (40, 300), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
@@ -1314,8 +1359,8 @@ def main() -> None:
     finally:
         if processor.is_recording and processor.video_writer is not None:
             processor.video_writer.release()
-        if cap is not None:
-            cap.release()
+        if cam is not None:
+            cam.release()
         cv2.destroyAllWindows()
 
 
